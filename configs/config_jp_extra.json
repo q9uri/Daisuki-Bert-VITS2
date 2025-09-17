@@ -69,7 +69,7 @@
     "use_spectral_norm": false,
     "gin_channels": 512,
     "slm": {
-      "model": "./slm/wavlm-base-plus",
+      "model": "./weight/slm/wavlm-base-plus",
       "sr": 16000,
       "hidden": 768,
       "nlayers": 13,
