@@ -109,7 +109,8 @@ def initialize(
             dirs_exist_ok=True,
         )
         shutil.rmtree(model_path)
-    pretrained_dir = Path("pretrained" if not use_jp_extra else "pretrained_jp_extra")
+        
+    pretrained_dir = Path("weight/pretrained/base" if not use_jp_extra else "weight/pretrained/jp_extra")
     try:
         shutil.copytree(
             src=pretrained_dir,
@@ -139,7 +140,7 @@ def resample(model_name: str, normalize: bool, trim: bool, num_processes: int):
     input_dir = dataset_path / "raw"
     output_dir = dataset_path / "wavs"
     cmd = [
-        "resample.py",
+        "tools/resample.py",
         "-i",
         str(input_dir),
         "-o",
@@ -177,7 +178,7 @@ def preprocess_text(
         )
 
     cmd = [
-        "preprocess_text.py",
+        "tools/preprocess_text.py",
         "--config-path",
         str(paths.config_path),
         "--transcription-path",
@@ -215,7 +216,7 @@ def bert_gen(model_name: str):
     logger.info("Step 4: start bert_gen...")
     config_path = get_path(model_name).config_path
     success, message = run_script_with_log(
-        ["bert_gen.py", "--config", str(config_path)]
+        ["tools/bert_gen.py", "--config", str(config_path)]
     )
     if not success:
         logger.error("Step 4: bert_gen failed.")
@@ -235,7 +236,7 @@ def style_gen(model_name: str, num_processes: int):
     config_path = get_path(model_name).config_path
     success, message = run_script_with_log(
         [
-            "style_gen.py",
+            "tools/style_gen.py",
             "--config",
             str(config_path),
             "--num_processes",
@@ -341,7 +342,7 @@ def train(
     with open("config.yml", "w", encoding="utf-8") as f:
         yaml.dump(yml_data, f, allow_unicode=True)
 
-    train_py = "train_ms.py" if not use_jp_extra else "train_ms_jp_extra.py"
+    train_py = "tools/train_ms.py" if not use_jp_extra else "tools/train_ms_jp_extra.py"
     cmd = [
         train_py,
         "--config",

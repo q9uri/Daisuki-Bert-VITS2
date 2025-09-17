@@ -17,7 +17,7 @@ def do_slice(
         return "Error: モデル名を入力してください。"
     logger.info("Start slicing...")
     cmd = [
-        "slice.py",
+        "tools/slice.py",
         "--model_name",
         model_name,
         "--min_sec",
@@ -58,7 +58,7 @@ def do_transcribe(
         initial_prompt = ""
 
     cmd = [
-        "transcribe.py",
+        "tools/transcribe.py",
         "--model_name",
         model_name,
         "--model",
@@ -170,9 +170,8 @@ def create_dataset_app() -> gr.Blocks:
                 )
                 whisper_model = gr.Dropdown(
                     [
-                        "large",
-                        "large-v2",
                         "large-v3",
+                        "efwkjn/whisper-ja-anime-v0.1"
                     ],
                     label="Whisperモデル",
                     value="large-v3",
@@ -182,8 +181,6 @@ def create_dataset_app() -> gr.Blocks:
                     [
                         "openai/whisper-large-v3-turbo",
                         "openai/whisper-large-v3",
-                        "openai/whisper-large-v2",
-                        "kotoba-tech/kotoba-whisper-v2.1",
                         "litagin/anime-whisper",
                     ],
                     label="HuggingFaceのWhisper repo_id",
@@ -217,7 +214,7 @@ def create_dataset_app() -> gr.Blocks:
                 language = gr.Dropdown(["ja", "en", "zh"], value="ja", label="言語")
                 initial_prompt = gr.Textbox(
                     label="初期プロンプト",
-                    value="こんにちは。元気、ですかー？ふふっ、私は……ちゃんと元気だよ！",
+                    value="",
                     info="このように書き起こしてほしいという例文（句読点の入れ方・笑い方・固有名詞等）",
                 )
                 num_beams = gr.Slider(

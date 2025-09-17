@@ -4,11 +4,13 @@ from typing import TypedDict
 from style_bert_vits2.constants import Languages
 from style_bert_vits2.logging import logger
 from style_bert_vits2.nlp import bert_models
-from style_bert_vits2.nlp.japanese import pyopenjtalk_worker as pyopenjtalk
+import jpreprocess
 from style_bert_vits2.nlp.japanese.mora_list import MORA_KATA_TO_MORA_PHONEMES, VOWELS
 from style_bert_vits2.nlp.japanese.normalizer import replace_punctuation
 from style_bert_vits2.nlp.symbols import PUNCTUATIONS
 
+global j
+j = jpreprocess.jpreprocess()
 
 def g2p(
     norm_text: str, use_jp_extra: bool = True, raise_yomi_error: bool = False
@@ -111,7 +113,8 @@ def text_to_sep_kata(
     """
 
     # parsed: OpenJTalkの解析結果
-    parsed = pyopenjtalk.run_frontend(norm_text)
+    global j
+    parsed = j.run_frontend(norm_text)
     sep_text: list[str] = []
     sep_kata: list[str] = []
 
@@ -471,7 +474,8 @@ def __pyopenjtalk_g2p_prosody(
             return -50
         return int(match.group(1))
 
-    labels = pyopenjtalk.make_label(pyopenjtalk.run_frontend(text))
+    global j
+    labels = j.make_label(j.run_frontend(text)) #type: ignore
     N = len(labels)
 
     phones = []

@@ -1,4 +1,4 @@
-# Style-Bert-VITS2
+# Daisuki-Style-Bert-VITS2
 
 **利用の際は必ず[お願いとデフォルトモデルの利用規約](/docs/TERMS_OF_USE.md)をお読みください。**
 
@@ -81,9 +81,14 @@ git clone https://github.com/litagin02/Style-Bert-VITS2.git
 cd Style-Bert-VITS2
 uv venv venv
 venv\Scripts\activate
-uv pip install "torch<2.4" "torchaudio<2.4" --index-url https://download.pytorch.org/whl/cu118
+uv pip install "torch<2.8" "torchaudio<2.8" --index-url https://download.pytorch.org/whl/cu118
 uv pip install -r requirements.txt
 python initialize.py  # 必要なモデルとデフォルトTTSモデルをダウンロード
+```
+書き起こしにはffmepgが必要です
+```
+#windows: 
+winget install --id=Gyan.FFmpeg -e
 ```
 最後を忘れずに。
 

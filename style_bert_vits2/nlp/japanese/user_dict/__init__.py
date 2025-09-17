@@ -16,7 +16,8 @@ import numpy as np
 from fastapi import HTTPException
 
 from style_bert_vits2.constants import DEFAULT_USER_DICT_DIR
-from style_bert_vits2.nlp.japanese import pyopenjtalk_worker as pyopenjtalk
+import jpreprocess
+
 from style_bert_vits2.nlp.japanese.user_dict.part_of_speech_data import (
     MAX_PRIORITY,
     MIN_PRIORITY,
@@ -36,7 +37,7 @@ default_dict_path = (
 )  # VOICEVOXデフォルト辞書ファイルのパス
 user_dict_path = DEFAULT_USER_DICT_DIR / "user_dict.json"  # ユーザー辞書ファイルのパス
 compiled_dict_path = (
-    DEFAULT_USER_DICT_DIR / "user.dic"
+    DEFAULT_USER_DICT_DIR / "user.bin"
 )  # コンパイル済み辞書ファイルのパス
 
 
@@ -141,17 +142,18 @@ def update_dict(
         tmp_csv_path.write_text(csv_text, encoding="utf-8")
 
         # 辞書.csvをOpenJTalk用にコンパイル
-        # pyopenjtalk.create_user_dict(str(tmp_csv_path), str(tmp_compiled_path))
-        pyopenjtalk.mecab_dict_index(str(tmp_csv_path), str(tmp_compiled_path))
+        global j
+        j = jpreprocess.jpreprocess()
+        
+        jpreprocess.build_dictionary(str(tmp_csv_path), str(tmp_compiled_path), user=True)
         if not tmp_compiled_path.is_file():
             raise RuntimeError("辞書のコンパイル時にエラーが発生しました。")
 
         # コンパイル済み辞書の置き換え・読み込み
-        pyopenjtalk.unset_user_dict()
+        
         tmp_compiled_path.replace(compiled_dict_path)
         if compiled_dict_path.is_file():
-            # pyopenjtalk.set_user_dict(str(compiled_dict_path.resolve(strict=True)))
-            pyopenjtalk.update_global_jtalk_with_user_dict(str(compiled_dict_path))
+            j = jpreprocess.jpreprocess(user_dictionary=str(compiled_dict_path))
 
     except Exception as e:
         print("Error: Failed to update dictionary.", file=sys.stderr)

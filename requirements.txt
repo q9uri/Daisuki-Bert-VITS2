@@ -1,7 +1,7 @@
 accelerate
 cmudict
 cn2an
-faster-whisper==0.10.1
+faster-whisper
 g2p_en
 GPUtil
 gradio>=4.32
@@ -22,12 +22,12 @@ psutil
 punctuators
 pyannote.audio>=3.1.0
 pyloudnorm
-pyopenjtalk-dict
+jpreprocess
 pypinyin
 pyworld-prebuilt
 stable_ts
 tensorboard
-torch<2.4
-torchaudio<2.4
-transformers
+torch
+torchaudio
+transformers==4.53.0
 umap-learn
