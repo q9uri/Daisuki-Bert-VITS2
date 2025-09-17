@@ -10,10 +10,10 @@ from style_bert_vits2.logging import logger
 
 
 def download_bert_models():
-    with open("bert/bert_models.json", encoding="utf-8") as fp:
+    with open("weight/bert/bert_models.json", encoding="utf-8") as fp:
         models = json.load(fp)
     for k, v in models.items():
-        local_path = Path("bert").joinpath(k)
+        local_path = Path("weight/bert").joinpath(k)
         for file in v["files"]:
             if not Path(local_path).joinpath(file).exists():
                 logger.info(f"Downloading {k} {file}")
@@ -21,7 +21,7 @@ def download_bert_models():
 
 
 def download_slm_model():
-    local_path = Path("slm/wavlm-base-plus/")
+    local_path = Path("weight/slm/wavlm-base-plus/")
     file = "pytorch_model.bin"
     if not Path(local_path).joinpath(file).exists():
         logger.info(f"Downloading wavlm-base-plus {file}")
@@ -30,7 +30,7 @@ def download_slm_model():
 
 def download_pretrained_models():
     files = ["G_0.safetensors", "D_0.safetensors", "DUR_0.safetensors"]
-    local_path = Path("pretrained")
+    local_path = Path("weight/pretrained/base")
     for file in files:
         if not Path(local_path).joinpath(file).exists():
             logger.info(f"Downloading pretrained {file}")
@@ -41,7 +41,7 @@ def download_pretrained_models():
 
 def download_jp_extra_pretrained_models():
     files = ["G_0.safetensors", "D_0.safetensors", "WD_0.safetensors"]
-    local_path = Path("pretrained_jp_extra")
+    local_path = Path("weight/pretrained/jp_extra")
     for file in files:
         if not Path(local_path).joinpath(file).exists():
             logger.info(f"Downloading JP-Extra pretrained {file}")
@@ -49,6 +49,19 @@ def download_jp_extra_pretrained_models():
                 "litagin/Style-Bert-VITS2-2.0-base-JP-Extra", file, local_dir=local_path
             )
 
+def downoad_whisper():
+    files = [
+        "model.safetensors",
+        "tokenizer.json",
+        ]
+    
+    local_path = Path("/weight/whisper/whisper-ja-anime-v0.3")
+    for file in files:
+        if not Path(local_path).joinpath(file).exists():
+            logger.info(f"Downloading whisper-ja-anime-v0.3 {file}")
+            hf_hub_download(
+                "efwkjn/whisper-ja-anime-v0.3", file, local_dir=local_path
+            )
 
 def download_default_models():
     files = [
@@ -122,6 +135,7 @@ def main():
         download_slm_model()
         download_pretrained_models()
         download_jp_extra_pretrained_models()
+        downoad_whisper()
 
     # If configs/paths.yml not exists, create it
     default_paths_yml = Path("configs/default_paths.yml")
