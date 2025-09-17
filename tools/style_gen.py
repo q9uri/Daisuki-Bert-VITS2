@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.getcwd())
+
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any

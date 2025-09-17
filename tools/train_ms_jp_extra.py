@@ -1,7 +1,10 @@
+import os
+import sys
+sys.path.append(os.getcwd())
+
 import argparse
 import datetime
 import gc
-import os
 import platform
 
 import torch

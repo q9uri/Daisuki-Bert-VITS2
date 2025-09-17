@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.getcwd())
+
 import argparse
 import json
 from collections import defaultdict
@@ -10,13 +14,14 @@ from tqdm import tqdm
 from config import get_config
 from style_bert_vits2.logging import logger
 from style_bert_vits2.nlp import clean_text
-from style_bert_vits2.nlp.japanese import pyopenjtalk_worker
+import jpreprocess
 from style_bert_vits2.nlp.japanese.user_dict import update_dict
 from style_bert_vits2.utils.stdout_wrapper import SAFE_STDOUT
 
 
 # このプロセスからはワーカーを起動して辞書を使いたいので、ここで初期化
-pyopenjtalk_worker.initialize_worker()
+global j
+j = jpreprocess.jpreprocess()
 
 # dict_data/ 以下の辞書データを pyopenjtalk に適用
 update_dict()
@@ -62,7 +67,8 @@ def process_line(
         language,
         norm_text,
         " ".join(phones),
-        " ".join([str(i) for i in tones]),
+        " ".join([str(2) for i in tones]),
+        #" ".join([str(i) for i in tones]),
         " ".join([str(i) for i in word2ph]),
     )
 

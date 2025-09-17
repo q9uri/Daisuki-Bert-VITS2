@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.getcwd())
+
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 
@@ -11,14 +15,12 @@ from style_bert_vits2.logging import logger
 from style_bert_vits2.models import commons
 from style_bert_vits2.models.hyper_parameters import HyperParameters
 from style_bert_vits2.nlp import cleaned_text_to_sequence, extract_bert_feature
-from style_bert_vits2.nlp.japanese import pyopenjtalk_worker
+
 from style_bert_vits2.nlp.japanese.user_dict import update_dict
 from style_bert_vits2.utils.stdout_wrapper import SAFE_STDOUT
 
 
 config = get_config()
-# このプロセスからはワーカーを起動して辞書を使いたいので、ここで初期化
-pyopenjtalk_worker.initialize_worker()
 
 # dict_data/ 以下の辞書データを pyopenjtalk に適用
 update_dict()

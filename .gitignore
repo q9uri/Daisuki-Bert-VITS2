@@ -10,22 +10,20 @@ dist/
 
 /*.yml
 !/default_config.yml
-/bert/*/*.bin
-/bert/*/*.h5
-/bert/*/*.model
-/bert/*/*.safetensors
-/bert/*/*.msgpack
-/bert/*/*.onnx
+/weight/bert/*/*.bin
+/weight/bert/*/*.h5
+/weight/bert/*/*.model
+/weight/bert/*/*.safetensors
+/weight/bert/*/*.msgpack
+/weight/bert/*/*.onnx
 
 /configs/paths.yml
 
-/pretrained/*.safetensors
-/pretrained/*.pth
+/weight/pretrained/*/*.safetensors
+/weight/pretrained/*/*.pth
 
-/pretrained_jp_extra/*.safetensors
-/pretrained_jp_extra/*.pth
-
-/slm/*/*.bin
+/weight/slm/*/*.bin
+/weight/whisper/*/*.safetensors
 
 /scripts/test/
 /scripts/lib/
