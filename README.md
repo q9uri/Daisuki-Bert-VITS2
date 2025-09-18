@@ -83,7 +83,8 @@ uv venv venv
 venv\Scripts\activate
 uv pip install "torch<2.8" "torchaudio<2.8" --index-url https://download.pytorch.org/whl/cu118
 uv pip install -r requirements.txt
-python initialize.py  # 必要なモデルとデフォルトTTSモデルをダウンロード
+python initialize.py  # 必要pなモデルとデフォルトTTSモデルをダウンロード
+python -m yomikata download 
 ```
 書き起こしにはffmepgが必要です
 ```
