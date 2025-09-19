@@ -16,6 +16,7 @@ import numpy as np
 from fastapi import HTTPException
 
 from style_bert_vits2.constants import DEFAULT_USER_DICT_DIR
+import kabosu_core
 import jpreprocess
 
 from style_bert_vits2.nlp.japanese.user_dict.part_of_speech_data import (
@@ -142,8 +143,6 @@ def update_dict(
         tmp_csv_path.write_text(csv_text, encoding="utf-8")
 
         # 辞書.csvをOpenJTalk用にコンパイル
-        global j
-        j = jpreprocess.jpreprocess()
         
         jpreprocess.build_dictionary(str(tmp_csv_path), str(tmp_compiled_path), user=True)
         if not tmp_compiled_path.is_file():
@@ -153,7 +152,7 @@ def update_dict(
         
         tmp_compiled_path.replace(compiled_dict_path)
         if compiled_dict_path.is_file():
-            j = jpreprocess.jpreprocess(user_dictionary=str(compiled_dict_path))
+            kabosu_core.update_global_jtalk_with_user_dict(user_dictionary=str(compiled_dict_path))
 
     except Exception as e:
         print("Error: Failed to update dictionary.", file=sys.stderr)

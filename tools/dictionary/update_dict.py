@@ -6,6 +6,7 @@
 #
 #THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#code from https://github.com/q9uri/merge-jtalkud
 
 from pathlib import Path
 
@@ -17,6 +18,22 @@ def update():
     out += split_text
 
     text = Path("./weight/dictionary/jtalkdic-ud-edict2-noacc.csv").read_text(encoding="utf-8")
+    split_text = text.split("\n")
+    out += split_text
+
+    text = Path("./weight/dictionary/jtalkdic-ud-sudachidict-noacc-00.csv").read_text(encoding="utf-8")
+    split_text = text.split("\n")
+    out += split_text
+    
+    text = Path("./weight/dictionary/jtalkdic-ud-sudachidict-noacc-01.csv").read_text(encoding="utf-8")
+    split_text = text.split("\n")
+    out += split_text
+    
+    text = Path("./weight/dictionary/jtalkdic-ud-sudachidict-noacc-02.csv").read_text(encoding="utf-8")
+    split_text = text.split("\n")
+    out += split_text
+    
+    text = Path("./weight/dictionary/jtalkdic-ud-sudachidict-noacc-03.csv").read_text(encoding="utf-8")
     split_text = text.split("\n")
     out += split_text
 
