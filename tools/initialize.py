@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.getcwd())
+
 import argparse
 import json
 import shutil
@@ -7,8 +11,8 @@ import yaml
 from huggingface_hub import hf_hub_download
 
 from style_bert_vits2.logging import logger
-
-
+from tools.dictionary.download import download_dictionary
+from tools.dictionary.update_dict import update
 def download_bert_models():
     with open("weight/bert/bert_models.json", encoding="utf-8") as fp:
         models = json.load(fp)
@@ -47,20 +51,6 @@ def download_jp_extra_pretrained_models():
             logger.info(f"Downloading JP-Extra pretrained {file}")
             hf_hub_download(
                 "litagin/Style-Bert-VITS2-2.0-base-JP-Extra", file, local_dir=local_path
-            )
-
-def downoad_whisper():
-    files = [
-        "model.safetensors",
-        "tokenizer.json",
-        ]
-    
-    local_path = Path("/weight/whisper/whisper-ja-anime-v0.3")
-    for file in files:
-        if not Path(local_path).joinpath(file).exists():
-            logger.info(f"Downloading whisper-ja-anime-v0.3 {file}")
-            hf_hub_download(
-                "efwkjn/whisper-ja-anime-v0.3", file, local_dir=local_path
             )
 
 def download_default_models():
@@ -135,7 +125,8 @@ def main():
         download_slm_model()
         download_pretrained_models()
         download_jp_extra_pretrained_models()
-        downoad_whisper()
+        download_dictionary()
+        update()
 
     # If configs/paths.yml not exists, create it
     default_paths_yml = Path("configs/default_paths.yml")
