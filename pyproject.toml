@@ -22,26 +22,29 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
+    "aivmlib>=1.2.1",
     "cmudict",
     "cn2an",
     "e2k",
-    "g2p_en",
+    "g2p-en",
     "jaconv",
     "jieba",
+    "kabosu-core",
     "loguru",
     "nltk<=3.8.1",
     "num2words",
     "numba",
     "numpy<2",
+    "psutil>=7.1.0",
     "pydantic>=2.0",
-    "pyopenjtalk-plus",
     "pypinyin",
     "pyworld-prebuilt",
     "safetensors",
     # transformers 4.50.0 以降、なぜか ku-nlp/deberta-v2-large-japanese-char-wwm (日本語用 BERT) が
     # ロード時にハングアップするため、やむを得ず当面の間 4.50.0 未満に固定する
     # ref: https://github.com/huggingface/transformers/issues/36803
-    "transformers<4.50.0",
+    "transformers==4.53.0",
+    "umap-learn>=0.5.9.post2",
 ]
 
 [project.optional-dependencies]
@@ -247,3 +250,6 @@ reportUnknownParameterType = "warning"
 reportUnknownVariableType = "none"
 reportUnusedFunction = "none"
 reportUnusedVariable = "information"
+
+[tool.uv.sources]
+kabosu-core = { git = "https://github.com/q9uri/kabosu-core", rev = "bf95fc6f227cabbb0e38220f32dc9da7fffdd38c" }
