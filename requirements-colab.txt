@@ -1,8 +1,11 @@
 accelerate
+aivmlib
 cmudict
 cn2an
+e2k
 g2p_en
 gradio>=4.32
+jaconv
 jieba
 librosa==0.9.2
 loguru
@@ -11,16 +14,15 @@ num2words
 numpy<2
 onnx
 onnxconverter-common
-onnxruntime
 onnxruntime-gpu
 onnxsim-prebuilt
 pyannote.audio>=3.1.0
 pyloudnorm
-jpreprocess
+kabosu-core @ git+https://github.com/q9uri/kabosu-core@3f9732129f8bcf5d2f2988981b163e69c58096ce
 pypinyin
 pyworld-prebuilt
 torch
 torchaudio
 torchvision
-transformers
+transformers<4.50.0
 umap-learn

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 from numpy.typing import NDArray
 
@@ -27,8 +27,9 @@ def extract_bert_feature(
     word2ph: list[int],
     language: Languages,
     device: str,
-    assist_text: Optional[str] = None,
+    assist_text: str | None = None,
     assist_text_weight: float = 0.7,
+    sep_text: list[str] | None = None,
 ) -> torch.Tensor:
     """
     テキストから BERT の特徴量を抽出する (PyTorch 推論)
@@ -38,8 +39,9 @@ def extract_bert_feature(
         word2ph (list[int]): 元のテキストの各文字に音素が何個割り当てられるかを表すリスト
         language (Languages): テキストの言語
         device (str): 推論に利用するデバイス
-        assist_text (Optional[str], optional): 補助テキスト (デフォルト: None)
+        assist_text (str | None, optional): 補助テキスト (デフォルト: None)
         assist_text_weight (float, optional): 補助テキストの重み (デフォルト: 0.7)
+        sep_text (list[str] | None, optional): 単語単位の単語のリスト (デフォルト: None)
 
     Returns:
         torch.Tensor: BERT の特徴量
@@ -47,23 +49,47 @@ def extract_bert_feature(
 
     if language == Languages.JP:
         from style_bert_vits2.nlp.japanese.bert_feature import extract_bert_feature
+
+        return extract_bert_feature(
+            text,
+            word2ph,
+            device,
+            assist_text,
+            assist_text_weight,
+            sep_text,  # 日本語のみ sep_text を指定する
+        )
     elif language == Languages.EN:
         from style_bert_vits2.nlp.english.bert_feature import extract_bert_feature
+
+        return extract_bert_feature(
+            text,
+            word2ph,
+            device,
+            assist_text,
+            assist_text_weight,
+        )
     elif language == Languages.ZH:
         from style_bert_vits2.nlp.chinese.bert_feature import extract_bert_feature
+
+        return extract_bert_feature(
+            text,
+            word2ph,
+            device,
+            assist_text,
+            assist_text_weight,
+        )
     else:
         raise ValueError(f"Language {language} not supported")
-
-    return extract_bert_feature(text, word2ph, device, assist_text, assist_text_weight)
 
 
 def extract_bert_feature_onnx(
     text: str,
     word2ph: list[int],
     language: Languages,
-    onnx_providers: Sequence[Union[str, tuple[str, dict[str, Any]]]],
-    assist_text: Optional[str] = None,
+    onnx_providers: Sequence[str | tuple[str, dict[str, Any]]],
+    assist_text: str | None = None,
     assist_text_weight: float = 0.7,
+    sep_text: list[str] | None = None,
 ) -> NDArray[Any]:
     """
     テキストから BERT の特徴量を抽出する (ONNX 推論)
@@ -73,8 +99,9 @@ def extract_bert_feature_onnx(
         word2ph (list[int]): 元のテキストの各文字に音素が何個割り当てられるかを表すリスト
         language (Languages): テキストの言語
         onnx_providers (list[str]): ONNX 推論で利用する ExecutionProvider (CPUExecutionProvider, CUDAExecutionProvider など)
-        assist_text (Optional[str], optional): 補助テキスト (デフォルト: None)
+        assist_text (str | None, optional): 補助テキスト (デフォルト: None)
         assist_text_weight (float, optional): 補助テキストの重み (デフォルト: 0.7)
+        sep_text (list[str] | None, optional): 単語単位の単語のリスト (デフォルト: None)
 
     Returns:
         NDArray[Any]: BERT の特徴量
@@ -82,30 +109,57 @@ def extract_bert_feature_onnx(
 
     if language == Languages.JP:
         from style_bert_vits2.nlp.japanese.bert_feature import extract_bert_feature_onnx
+
+        return extract_bert_feature_onnx(
+            text,
+            word2ph,
+            onnx_providers,
+            assist_text,
+            assist_text_weight,
+            sep_text,  # 日本語のみ sep_text を指定する
+        )
     elif language == Languages.EN:
         from style_bert_vits2.nlp.english.bert_feature import extract_bert_feature_onnx
+
+        return extract_bert_feature_onnx(
+            text,
+            word2ph,
+            onnx_providers,
+            assist_text,
+            assist_text_weight,
+        )
     elif language == Languages.ZH:
         from style_bert_vits2.nlp.chinese.bert_feature import extract_bert_feature_onnx
+
+        return extract_bert_feature_onnx(
+            text,
+            word2ph,
+            onnx_providers,
+            assist_text,
+            assist_text_weight,
+        )
     else:
         raise ValueError(f"Language {language} not supported")
 
-    return extract_bert_feature_onnx(
-        text,
-        word2ph,
-        onnx_providers,
-        assist_text,
-        assist_text_weight,
-    )
 
-
-def clean_text(
+def _clean_text(
     text: str,
     language: Languages,
     use_jp_extra: bool = True,
     raise_yomi_error: bool = False,
-) -> tuple[str, list[str], list[int], list[int]]:
+) -> tuple[
+    str,
+    list[str],
+    list[int],
+    list[int],
+    list[str] | None,
+    list[str] | None,
+    list[str] | None,
+]:
     """
     テキストをクリーニングし、音素に変換する
+    この関数では実装の都合上 convert_unsupported_phones_for_current_model() を呼び出さないため、
+    必ずこの _clean_text() の代わりに clean_text_with_given_phone_tone() を使うこと
 
     Args:
         text (str): クリーニングするテキスト
@@ -114,7 +168,14 @@ def clean_text(
         raise_yomi_error (bool, optional): False の場合、読めない文字が消えたような扱いとして処理される。Defaults to False.
 
     Returns:
-        tuple[str, list[str], list[int], list[int]]: クリーニングされたテキストと、音素・アクセント・元のテキストの各文字に音素が何個割り当てられるかのリスト
+        tuple[str, list[str], list[int], list[int], list[str] | None, list[str] | None, list[str] | None]:
+            - クリーニングされたテキスト
+            - 音素
+            - アクセント
+            - 元のテキストの各文字に音素が何個割り当てられるかのリスト
+            - 単語単位の単語のリスト
+            - 単語単位の単語のカタカナ読みのリスト
+            - 単語単位の単語のカタカナ読みに助詞を追加したリスト
     """
 
     # Changed to import inside if condition to avoid unnecessary import
@@ -123,55 +184,87 @@ def clean_text(
         from style_bert_vits2.nlp.japanese.normalizer import normalize_text
 
         norm_text = normalize_text(text)
-        phones, tones, word2ph = g2p(norm_text, use_jp_extra, raise_yomi_error)
+        phones, tones, word2ph, sep_text, sep_kata, sep_kata_with_joshi = g2p(
+            norm_text,
+            use_jp_extra=use_jp_extra,
+            raise_yomi_error=raise_yomi_error,
+        )
     elif language == Languages.EN:
         from style_bert_vits2.nlp.english.g2p import g2p
         from style_bert_vits2.nlp.english.normalizer import normalize_text
 
         norm_text = normalize_text(text)
         phones, tones, word2ph = g2p(norm_text)
+
+        # 日本語以外では sep_text, sep_kata, sep_kata_with_joshi は None になる
+        sep_text = None
+        sep_kata = None
+        sep_kata_with_joshi = None
     elif language == Languages.ZH:
         from style_bert_vits2.nlp.chinese.g2p import g2p
         from style_bert_vits2.nlp.chinese.normalizer import normalize_text
 
         norm_text = normalize_text(text)
         phones, tones, word2ph = g2p(norm_text)
+
+        # 日本語以外では sep_text, sep_kata, sep_kata_with_joshi は None になる
+        sep_text = None
+        sep_kata = None
+        sep_kata_with_joshi = None
     else:
         raise ValueError(f"Language {language} not supported")
 
-    return norm_text, phones, tones, word2ph
+    return norm_text, phones, tones, word2ph, sep_text, sep_kata, sep_kata_with_joshi
 
 
 def clean_text_with_given_phone_tone(
     text: str,
     language: Languages,
-    given_phone: Optional[list[str]] = None,
-    given_tone: Optional[list[int]] = None,
+    given_phone: list[str] | None = None,
+    given_tone: list[int] | None = None,
     use_jp_extra: bool = True,
     raise_yomi_error: bool = False,
-) -> tuple[str, list[str], list[int], list[int]]:
+) -> tuple[
+    str,
+    list[str],
+    list[int],
+    list[int],
+    list[str] | None,
+    list[str] | None,
+    list[str] | None,
+]:
     """
     テキストをクリーニングし、音素に変換する
     変換時、given_phone や given_tone が与えられた場合はそれを調整して使う
+    この関数は内部で convert_unsupported_phones_for_current_model() を自動的に呼び出し、対応していない音素をフォールバックする
 
     Args:
         text (str): クリーニングするテキスト
         language (Languages): テキストの言語
-        given_phone (Optional[list[int]], optional): 読み上げテキストの読みを表す音素列。指定する場合は given_tone も別途指定が必要. Defaults to None.
-        given_tone (Optional[list[int]], optional): アクセントのトーンのリスト. Defaults to None.
+        given_phone (list[str] | None, optional): 読み上げテキストの読みを表す音素列。指定する場合は given_tone も別途指定が必要. Defaults to None.
+        given_tone (list[int] | None, optional): アクセントのトーンのリスト. Defaults to None.
         use_jp_extra (bool, optional): テキストが日本語の場合に JP-Extra モデルを利用するかどうか。Defaults to True.
         raise_yomi_error (bool, optional): False の場合、読めない文字が消えたような扱いとして処理される。Defaults to False.
 
     Returns:
-        tuple[str, list[str], list[int], list[int]]: クリーニングされたテキストと、音素・アクセント・元のテキストの各文字に音素が何個割り当てられるかのリスト
+        tuple[str, list[str], list[int], list[int], list[str] | None, list[str] | None, list[str] | None]:
+            - クリーニングされたテキスト
+            - 音素
+            - アクセント
+            - 元のテキストの各文字に音素が何個割り当てられるかのリスト
+            - 単語単位の単語のリスト
+            - 単語単位の単語のカタカナ読みのリスト
+            - 単語単位の単語のカタカナ読みに助詞を追加したリスト
     """
 
     # 与えられたテキストをクリーニング
-    norm_text, phone, tone, word2ph = clean_text(
-        text,
-        language,
-        use_jp_extra=use_jp_extra,
-        raise_yomi_error=raise_yomi_error,
+    norm_text, phone, tone, word2ph, sep_text, sep_kata, sep_kata_with_joshi = (
+        _clean_text(
+            text,
+            language,
+            use_jp_extra=use_jp_extra,
+            raise_yomi_error=raise_yomi_error,
+        )
     )
 
     # phone と tone の両方が与えられた場合はそれを使う
@@ -191,10 +284,12 @@ def clean_text_with_given_phone_tone(
                 # use_jp_extra でない場合は given_phone 内の「N」を「n」に変換
                 if not use_jp_extra:
                     given_phone = [p if p != "N" else "n" for p in given_phone]
-                # clean_text() から取得した word2ph を調整結果で上書き
+                # _clean_text() から取得した word2ph を調整結果で上書き
                 word2ph = adjust_word2ph(word2ph, phone, given_phone)
                 # 上記処理により word2ph の合計が given_phone の長さと一致するはず
-                # それでも一致しない場合、大半は読み上げテキストと given_phone が著しく乖離していて調整し切れなかったことを意味する
+                # それでも一致しないとしたら、len(generated_phone) に比べて len(given_phone) があまりに少なすぎて、
+                # 各文字ごとに最低 1 以上の音素を割り当てることが不可能だったことを意味する
+                # 通常無理やりにでも辻褄を合わせるため発生しないはずだが、どうしても一致しない場合はエラーとする
                 if len(given_phone) != sum(word2ph):
                     raise InvalidPhoneError(
                         f"Length of given_phone ({len(given_phone)}) != sum of word2ph ({sum(word2ph)})"
@@ -211,7 +306,7 @@ def clean_text_with_given_phone_tone(
             )
         tone = given_tone
 
-    # tone だけが与えられた場合は clean_text() で生成した phone と合わせて使う
+    # tone だけが与えられた場合は _clean_text() で生成した phone と合わせて使う
     elif given_tone is not None:
         # 生成した phone と指定された tone 両方の長さが一致していなければならない
         if len(phone) != len(given_tone):
@@ -220,7 +315,83 @@ def clean_text_with_given_phone_tone(
             )
         tone = given_tone
 
-    return norm_text, phone, tone, word2ph
+    # 日本語のみ、g2p 処理では対応しているが現行モデルでは対応していない特定音素を変換 (フォールバック)
+    # この処理は given_phone / given_tone が調整された後に実行する必要がある
+    convert_unsupported_phones_for_current_model(phone, tone, word2ph, language)
+
+    return norm_text, phone, tone, word2ph, sep_text, sep_kata, sep_kata_with_joshi
+
+
+def convert_unsupported_phones_for_current_model(
+    phone: list[str],
+    tone: list[int],
+    word2ph: list[int],
+    language: Languages,
+) -> None:
+    """
+    g2p 処理では対応しているが現行モデルでは対応していない特定音素を、対応する音素にフォールバックする
+    変更は引数で与えられた phone / tone / word2ph に in-place で適用される
+    必ず phone / tone を cleaned_text_to_sequence() に渡す前に、一度だけ実行する必要がある
+
+    Args:
+        phone (list[str]): 音素リスト
+        tone (list[int]): アクセントリスト
+        word2ph (list[int]): 各文字に割り当てられた音素数のリスト
+        language (Languages): 言語
+    """
+
+    # ここでは必ず音素数・アクセント数・word2ph の長さが一致するはず（事前チェックとして念のため）
+    # 通常起こり得ないが、万が一一致しない場合、誤った対応関係で学習される可能性があるためデータセットに含めるべきでない
+    #assert len(phone) == len(tone) == sum(word2ph)
+
+    # 日本語のみ、g2p 処理では対応しているが現行モデルでは対応していない特定音素を変換 (フォールバック)
+    if language == Languages.JP:
+        # 音素変換マップ
+        PHONE_CONVERSION_MAP = {
+            "kw": ("k", "u", "w"),  # 「クヮ」→「クワ」
+            "gw": ("g", "u", "w"),  # 「グヮ」→「グワ」
+            "fy": ("hy",),  # 「フュ」→「ヒュ」
+        }
+
+        # 変換が必要な音素のインデックスを収集
+        conversion_indices: list[tuple[int, str]] = []
+        for i, p in enumerate(phone):
+            if p in PHONE_CONVERSION_MAP:
+                conversion_indices.append((i, p))
+
+        # 音素変換が必要な場合のみ処理を実行
+        if conversion_indices:
+            # インデックスは後ろから処理することで、
+            # 前の変換による位置ずれの影響を受けないようにする
+            for orig_idx, orig_phone in reversed(conversion_indices):
+                # 変換後の音素を取得
+                converted_phones = PHONE_CONVERSION_MAP[orig_phone]
+
+                # phone リストの更新
+                ## スライスで置換すると要素数が変化する
+                phone[orig_idx : orig_idx + 1] = list(converted_phones)
+
+                # tone リストの更新
+                ## 元の音素のトーンを、変換後の音素全てに適用
+                orig_tone = tone[orig_idx]
+                tone[orig_idx : orig_idx + 1] = [orig_tone] * len(converted_phones)
+
+                # word2ph リストの更新
+                ## 元の音素が属していた文字のインデックスを特定
+                char_idx = 0
+                phone_count = 0
+                for i, count in enumerate(word2ph):
+                    if phone_count + count > orig_idx:
+                        char_idx = i
+                        break
+                    phone_count += count
+
+                # 該当する文字の音素数を更新
+                ## kw, gw の場合、1つの音素が3つの音素に変換されるので、2つ増える
+                word2ph[char_idx] += len(converted_phones) - 1
+
+        # ここでは必ず音素数・アクセント数・word2ph の長さが一致するはず
+        #assert len(phone) == len(tone) == sum(word2ph)
 
 
 def cleaned_text_to_sequence(
@@ -230,7 +401,7 @@ def cleaned_text_to_sequence(
     音素リスト・アクセントリスト・言語を、テキスト内の対応する ID に変換する
 
     Args:
-        cleaned_phones (list[str]): clean_text() でクリーニングされた音素のリスト
+        cleaned_phones (list[str]): clean_text_with_given_phone_tone() でクリーニングされた音素のリスト
         tones (list[int]): 各音素のアクセント
         language (Languages): テキストの言語
 

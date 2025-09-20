@@ -1,33 +1,46 @@
 import re
+import sys
 from typing import TypedDict
 
 from style_bert_vits2.constants import Languages
 from style_bert_vits2.logging import logger
 from style_bert_vits2.nlp import bert_models
 import kabosu_core 
+from kabosu_core.types import NjdObject
 from style_bert_vits2.nlp.japanese.mora_list import MORA_KATA_TO_MORA_PHONEMES, VOWELS
 from style_bert_vits2.nlp.japanese.normalizer import replace_punctuation
 from style_bert_vits2.nlp.symbols import PUNCTUATIONS
 
 
 def g2p(
-    norm_text: str, use_jp_extra: bool = True, raise_yomi_error: bool = False
-) -> tuple[list[str], list[int], list[int]]:
+    norm_text: str,
+    use_jp_extra: bool = True,
+    raise_yomi_error: bool = False,
+) -> tuple[list[str], list[int], list[int], list[str], list[str], list[str]]:
     """
     他で使われるメインの関数。`normalize_text()` で正規化された `norm_text` を受け取り、
     - phones: 音素のリスト（ただし `!` や `,` や `.` など punctuation が含まれうる）
     - tones: アクセントのリスト、0（低）と1（高）からなり、phones と同じ長さ
-    - word2ph: 元のテキストの各文字に音素が何個割り当てられるかを表すリスト
+    - word2ph: 正規化済みテキストの各文字に音素が何個割り当てられるかを表すリスト
+    - sep_text: 単語単位の単語のリスト
+    - sep_kata: 単語単位の単語のカタカナ読みのリスト
+    - sep_kata_with_joshi: 単語単位の単語のカタカナ読みのリスト (助詞を直前の単語に連結している)
     のタプルを返す。
     ただし `phones` と `tones` の最初と終わりに `_` が入り、応じて `word2ph` の最初と最後に 1 が追加される。
 
     Args:
-        norm_text (str): 正規化されたテキスト
+        norm_text (str): 正規化済みテキスト
         use_jp_extra (bool, optional): False の場合、「ん」の音素を「N」ではなく「n」とする。Defaults to True.
         raise_yomi_error (bool, optional): False の場合、読めない文字が「'」として発音される。Defaults to False.
 
     Returns:
-        tuple[list[str], list[int], list[int]]: 音素のリスト、アクセントのリスト、word2ph のリスト
+        tuple[list[str], list[int], list[int], list[str], list[str], list[str]]:
+            - phones: 音素のリスト（ただし `!` や `,` や `.` など punctuation が含まれうる）
+            - tones: アクセントのリスト、0（低）と1（高）からなり、phones と同じ長さ
+            - word2ph: 正規化済みテキストの各文字に音素が何個割り当てられるかを表すリスト
+            - sep_text: 単語単位の単語のリスト
+            - sep_kata: 単語単位の単語のカタカナ読みのリスト
+            - sep_kata_with_joshi: 単語単位の単語のカタカナ読みのリスト (助詞を直前の単語に連結している)
     """
 
     # pyopenjtalk のフルコンテキストラベルを使ってアクセントを取り出すと、punctuation の位置が消えてしまい情報が失われてしまう：
@@ -36,12 +49,20 @@ def g2p(
     # それとは別に pyopenjtalk.run_frontend() で得られる音素リスト（こちらは punctuation が保持される）を使い、
     # アクセント割当をしなおすことによって punctuation を含めた音素とアクセントのリストを作る。
 
+    # kabosu_core から NJDFeature のリストを取得
+    njd_features = kabosu_core.run_frontend(norm_text)
+
     # punctuation がすべて消えた、音素とアクセントのタプルのリスト（「ん」は「N」）
-    phone_tone_list_wo_punct = __g2phone_tone_wo_punct(norm_text)
+    phone_tone_list_wo_punct = __g2phone_tone_wo_punct(njd_features)
 
     # sep_text: 単語単位の単語のリスト
     # sep_kata: 単語単位の単語のカタカナ読みのリスト、読めない文字は raise_yomi_error=True なら例外、False なら読めない文字を「'」として返ってくる
-    sep_text, sep_kata = text_to_sep_kata(norm_text, raise_yomi_error=raise_yomi_error)
+    # sep_kata_with_joshi: sep_kata と同様だが、助詞を直前の単語に連結している
+    sep_text, sep_kata, sep_kata_with_joshi = text_to_sep_kata(
+        norm_text,
+        njd_features=njd_features,
+        raise_yomi_error=raise_yomi_error,
+    )
 
     # sep_phonemes: 各単語ごとの音素のリストのリスト
     sep_phonemes = __handle_long([__kata_to_phoneme_list(i) for i in sep_kata])
@@ -88,12 +109,14 @@ def g2p(
     if not use_jp_extra:
         phones = [phone if phone != "N" else "n" for phone in phones]
 
-    return phones, tones, word2ph
+    return phones, tones, word2ph, sep_text, sep_kata, sep_kata_with_joshi
 
 
 def text_to_sep_kata(
-    norm_text: str, raise_yomi_error: bool = False
-) -> tuple[list[str], list[str]]:
+    norm_text: str,
+    njd_features: list[NjdObject] | None = None,
+    raise_yomi_error: bool = False,
+) -> tuple[list[str], list[str], list[str]]:
     """
     `normalize_text` で正規化済みの `norm_text` を受け取り、それを単語分割し、
     分割された単語リストとその読み（カタカナ or 記号1文字）のリストのタプルを返す。
@@ -103,23 +126,28 @@ def text_to_sep_kata(
     ["私", "は", "そう", "思う", "!", "って", "感じ", "?"], ["ワタシ", "ワ", "ソー", "オモウ", "!", "ッテ", "カンジ", "?"]
 
     Args:
-        norm_text (str): 正規化されたテキスト
+        norm_text (str): 正規化済みテキスト
+        njd_features (list[NjdObject] | None, optional): kabosu_core.run_frontend() の結果。None の場合は内部で実行する。
         raise_yomi_error (bool, optional): False の場合、読めない文字が「'」として発音される。Defaults to False.
 
     Returns:
-        tuple[list[str], list[str]]: 分割された単語リストと、その読み（カタカナ or 記号1文字）のリスト
+        tuple[list[str], list[str], list[str]]: 分割された単語リストと、その読み（カタカナ or 記号1文字）のリスト、助詞を連結した読みのリスト
     """
 
-    # parsed: OpenJTalkの解析結果
-    parsed = kabosu_core.run_frontend(norm_text)
+    # parsed: kabosu_coreの解析結果
+    # njd_features: kabosu_coreの解析結果
+    if njd_features is None:
+        njd_features = kabosu_core.run_frontend(norm_text)
     sep_text: list[str] = []
     sep_kata: list[str] = []
+    sep_kata_with_joshi: list[str] = []  # 助詞を分けずに連結した sep_kata (例: "鉛筆", "を" -> "鉛筆を") # fmt: skip
 
-    for parts in parsed:
+    for parts in njd_features:
         # word: 実際の単語の文字列
         # yomi: その読み、但し無声化サインの`’`は除去
-        word, yomi = replace_punctuation(parts["string"]), parts["pron"].replace(
-            "’", ""
+        word, yomi = (
+            replace_punctuation(parts["string"]),
+            parts["pron"].replace("’", ""),
         )
         """
         ここで `yomi` の取りうる値は以下の通りのはず。
@@ -135,8 +163,16 @@ def text_to_sep_kata(
         """
         assert yomi != "", f"Empty yomi: {word}"
         if yomi == "、":
+            # スラッシュは pyopenjtalk での形態素解析処理で重要なので例外的に正規化後も残しており、
+            # ここでスラッシュが返ってきている場合はスラッシュを含めた辞書エントリに引っ掛からなかったということなので、
+            # 通常通り "/" を "." 扱いで処理する
+            if word == "/":
+                yomi = "."
+            # pyopenjtalk のバグを避けるために意図的に残した Long EM Dash が残っている場合は "-" (半角ハイフン) に変換
+            elif word == "—":
+                yomi = "-"
             # word は正規化されているので、`.`, `,`, `!`, `'`, `-`, `--` のいずれか
-            if not set(word).issubset(set(PUNCTUATIONS)):  # 記号繰り返しか判定
+            elif not set(word).issubset(set(PUNCTUATIONS)):  # 記号繰り返しか判定
                 # ここは pyopenjtalk が読めない文字等のときに起こる
                 ## 例外を送出する場合
                 if raise_yomi_error:
@@ -151,13 +187,22 @@ def text_to_sep_kata(
             else:
                 # yomi は元の記号のままに変更
                 yomi = word
+        elif yomi == "！":
+            assert word == "!", f"yomi `！` comes from: {word}"
+            yomi = "!"
         elif yomi == "？":
             assert word == "?", f"yomi `？` comes from: {word}"
             yomi = "?"
         sep_text.append(word)
         sep_kata.append(yomi)
 
-    return sep_text, sep_kata
+        # この単語が助詞 or 助動詞のときは前の要素に連結
+        if parts["pos"] in ["助詞", "助動詞"] and len(sep_kata_with_joshi) > 0:
+            sep_kata_with_joshi[-1] += yomi
+        else:
+            sep_kata_with_joshi.append(yomi)
+
+    return sep_text, sep_kata, sep_kata_with_joshi
 
 
 def adjust_word2ph(
@@ -174,7 +219,7 @@ def adjust_word2ph(
     アクセントへの影響を最低限に抑えつつ word2ph の合計値を given_phone の長さ (音素数) に一致させる。
 
     Args:
-        word2ph (list[int]): 単語ごとの音素の数のリスト
+        word2ph (list[int]): 正規化済みテキストの各文字に音素が何個割り当てられるかを表すリスト
         generated_phone (list[str]): 生成された音素のリスト
         given_phone (list[str]): 与えられた音素のリスト
 
@@ -212,14 +257,14 @@ def adjust_word2ph(
             """
             m, n = len(X), len(Y)
             L = [[0] * (n + 1) for _ in range(m + 1)]
-            # LCSの長さを構築
+            # LCS の長さを構築
             for i in range(1, m + 1):
                 for j in range(1, n + 1):
                     if X[i - 1] == Y[j - 1]:
                         L[i][j] = L[i - 1][j - 1] + 1
                     else:
                         L[i][j] = max(L[i - 1][j], L[i][j - 1])
-            # LCSを逆方向にトレースしてインデックスのペアを取得
+            # LCS を逆方向にトレースしてインデックスのペアを取得
             index_pairs = []
             i, j = m, n
             while i > 0 and j > 0:
@@ -314,9 +359,6 @@ def adjust_word2ph(
             # 処理中の generated_phone のインデックスを進める
             current_generated_index += 1
 
-    # この時点で given_phone の長さと adjusted_word2ph に記録されている音素数の合計が一致しているはず
-    assert len(given_phone) == sum(adjusted_word2ph), f"{len(given_phone)} != {sum(adjusted_word2ph)}"  # fmt: skip
-
     # generated_phone から given_phone の間で音素が減った場合 (例: a, sh, i, t, a -> a, s, u) 、
     # adjusted_word2ph の要素の値が 1 未満になることがあるので、1 になるように値を増やす
     ## この時、adjusted_word2ph に記録されている音素数の合計を変えないために、
@@ -364,14 +406,77 @@ def adjust_word2ph(
                         break
 
     # この時点で given_phone の長さと adjusted_word2ph に記録されている音素数の合計が一致していない場合、
-    # 正規化された読み上げテキストと given_phone が著しく乖離していることを示す
-    # このとき、この関数の呼び出し元の get_text() にて InvalidPhoneError が送出される
+    # 乖離が大きすぎて調整しきれなかったことを意味する
+    # この場合、なるべく正確性を維持できるよう、以下のように調整して無理やり辻褄を合わせる
+    total_phonemes = sum(adjusted_word2ph)
+    target_total_phonemes = len(given_phone)
+    if total_phonemes != target_total_phonemes:
+        # 音素数が多すぎる場合は、大きい値から順に減らしていく
+        if total_phonemes > target_total_phonemes:
+            diff = total_phonemes - target_total_phonemes
+            # 要素の値が大きい順にインデックスを取得
+            indices = sorted(
+                range(len(adjusted_word2ph)),
+                key=lambda i: adjusted_word2ph[i],
+                reverse=True,
+            )
+            # まずは1以上6以下の制限内で調整を試みる
+            for i in indices:
+                if adjusted_word2ph[i] > 1 and diff > 0:
+                    reduce = min(adjusted_word2ph[i] - 1, diff)
+                    adjusted_word2ph[i] -= reduce
+                    diff -= reduce
+                if diff == 0:
+                    break
+            # それでも調整できない場合は、制限を解除して強制的に調整
+            if diff > 0:
+                # 残りの差分を要素数で割って、各要素から均等に引く
+                per_element = diff // len(adjusted_word2ph)
+                remainder = diff % len(adjusted_word2ph)
+                for i in range(len(adjusted_word2ph)):
+                    if i < remainder:
+                        adjusted_word2ph[i] = max(
+                            1, adjusted_word2ph[i] - (per_element + 1)
+                        )
+                    else:
+                        adjusted_word2ph[i] = max(1, adjusted_word2ph[i] - per_element)
+
+        # 音素数が少なすぎる場合は、小さい値から順に増やしていく
+        else:
+            diff = target_total_phonemes - total_phonemes
+            # 要素の値が小さい順にインデックスを取得
+            indices = sorted(
+                range(len(adjusted_word2ph)),
+                key=lambda i: adjusted_word2ph[i],
+            )
+            # まずは1以上6以下の制限内で調整を試みる
+            for i in indices:
+                if adjusted_word2ph[i] < 6 and diff > 0:
+                    increase = min(6 - adjusted_word2ph[i], diff)
+                    adjusted_word2ph[i] += increase
+                    diff -= increase
+                if diff == 0:
+                    break
+            # それでも調整できない場合は、制限を解除して強制的に調整
+            if diff > 0:
+                # 残りの差分を要素数で割って、各要素に均等に足す
+                per_element = diff // len(adjusted_word2ph)
+                remainder = diff % len(adjusted_word2ph)
+                for i in range(len(adjusted_word2ph)):
+                    if i < remainder:
+                        adjusted_word2ph[i] += per_element + 1
+                    else:
+                        adjusted_word2ph[i] += per_element
 
     # 最初に削除した前後のダミー要素を追加して返す
+    # この時点で given_phone の長さと adjusted_word2ph に記録されている音素数の合計が一致していない場合、
+    # 呼び出し元の clean_text_with_given_phone_tone() から InvalidPhoneError が送出される
     return [1] + adjusted_word2ph + [1]
 
 
-def __g2phone_tone_wo_punct(text: str) -> list[tuple[str, int]]:
+def __g2phone_tone_wo_punct(
+    njd_features: list[NjdObject],
+) -> list[tuple[str, int]]:
     """
     テキストに対して、音素とアクセント（0か1）のペアのリストを返す。
     ただし「!」「.」「?」等の非音素記号 (punctuation) は全て消える（ポーズ記号も残さない）。
@@ -381,13 +486,15 @@ def __g2phone_tone_wo_punct(text: str) -> list[tuple[str, int]]:
     [('k', 0), ('o', 0), ('N', 1), ('n', 1), ('i', 1), ('ch', 1), ('i', 1), ('w', 1), ('a', 1), ('s', 1), ('e', 1), ('k', 0), ('a', 0), ('i', 0), ('i', 0), ('g', 1), ('e', 1), ('N', 0), ('k', 0), ('i', 0)]
 
     Args:
-        text (str): テキスト
+        njd_features (list[NjdObject]): kabosu_core.run_frontend() の結果
 
     Returns:
         list[tuple[str, int]]: 音素とアクセントのペアのリスト
     """
 
-    prosodies = __pyopenjtalk_g2p_prosody(text, drop_unvoiced_vowels=True)
+    prosodies = __pyopenjtalk_g2p_prosody(
+        njd_features, drop_unvoiced_vowels=True
+    )
     # logger.debug(f"prosodies: {prosodies}")
     result: list[tuple[str, int]] = []
     current_phrase: list[tuple[str, int]] = []
@@ -437,10 +544,11 @@ __PYOPENJTALK_G2P_PROSODY_P3_PATTERN = re.compile(r"\-(.*?)\+")
 
 
 def __pyopenjtalk_g2p_prosody(
-    text: str, drop_unvoiced_vowels: bool = True
+    njd_features: list[NjdObject],
+    drop_unvoiced_vowels: bool = True,
 ) -> list[str]:
     """
-    ESPnet の実装から引用、概ね変更点無し。「ん」は「N」なことに注意。
+    ESPnet の実装から引用。直接 NJDFeature のリストを受け取る形に変更した。「ん」は「N」なことに注意。
     ref: https://github.com/espnet/espnet/blob/master/espnet2/text/phoneme_tokenizer.py
     ------------------------------------------------------------------------------------------
 
@@ -450,7 +558,7 @@ def __pyopenjtalk_g2p_prosody(
     sequence-to-sequence acoustic modeling for neural TTS`_ with some r9y9's tweaks.
 
     Args:
-        text (str): Input text.
+        njd_features (list[NjdObject]): result of kabosu_core.run_frontend().
         drop_unvoiced_vowels (bool): whether to drop unvoiced vowels.
 
     Returns:
@@ -471,7 +579,7 @@ def __pyopenjtalk_g2p_prosody(
             return -50
         return int(match.group(1))
 
-    labels = kabosu_core.make_label(kabosu_core.run_frontend(text)) #type: ignore
+    labels = kabosu_core.make_label(njd_features) #type: ignore
     N = len(labels)
 
     phones = []
@@ -668,7 +776,7 @@ def __align_tones(
 
     result: list[tuple[str, int]] = []
     tone_index = 0
-    for phone in phones_with_punct:
+    for i, phone in enumerate(phones_with_punct):
         if tone_index >= len(phone_tone_list):
             # 余った punctuation がある場合 → (punctuation, 0) を追加
             result.append((phone, 0))
@@ -677,8 +785,28 @@ def __align_tones(
             result.append((phone, phone_tone_list[tone_index][1]))
             # 探す index を1つ進める
             tone_index += 1
+            # 促音の後に長音記号が来る場合、phone_tone_list では促音が複数回連続で出現するため、
+            # 次の音素が長音記号で、かつ現在の音素が促音だった場合は、長音記号の数だけ index を進める
+            if phone == "q":
+                # 現在位置から連続する長音記号の数を数える
+                long_count = 0
+                pos = i + 1
+                while pos < len(phones_with_punct) and phones_with_punct[pos] == "-":
+                    long_count += 1
+                    pos += 1
+                # 長音記号の数だけ、phone_tone_list の中の余分な促音をスキップ
+                while (
+                    long_count > 0
+                    and tone_index < len(phone_tone_list)
+                    and phone_tone_list[tone_index][0] == "q"
+                ):
+                    tone_index += 1
+                    long_count -= 1
         elif phone in PUNCTUATIONS:
             # phone が punctuation の場合 → (phone, 0) を追加
+            result.append((phone, 0))
+        elif phone == "-" and i > 0 and phones_with_punct[i - 1] == "q":
+            # 促音「っ」の後の長音記号「ー」の場合は、そのまま tone 0 で追加
             result.append((phone, 0))
         else:
             logger.debug(f"phones: {phones_with_punct}")
@@ -704,6 +832,11 @@ def __distribute_phone(n_phone: int, n_word: int) -> list[int]:
         list[int]: 単語ごとの音素の数のリスト
     """
 
+    if n_word == 0:
+        logger.warning(
+            "Empty token detected in __distribute_phone. Falling back to distribute entire phoneme count as a single token."
+        )
+        return [n_phone]
     phones_per_word = [0] * n_word
     for _ in range(n_phone):
         min_tasks = min(phones_per_word)
@@ -719,3 +852,30 @@ class YomiError(Exception):
     基本的に「学習の前処理のテキスト処理時」には発生させ、そうでない場合は、
     raise_yomi_error=False にしておいて、この例外を発生させないようにする。
     """
+
+
+if __name__ == "__main__":
+    import time
+
+    from style_bert_vits2.nlp.japanese.g2p_utils import phone_tone2kata_tone
+    from style_bert_vits2.nlp.japanese.normalizer import normalize_text
+
+    if len(sys.argv) != 2:
+        print("Usage: python -m style_bert_vits2.nlp.japanese.g2p <text>")
+        sys.exit(1)
+    bert_models.load_tokenizer(Languages.JP)
+    start = time.time()
+    phones, tones, word2ph, sep_text, sep_kata, sep_kata_with_joshi = g2p(
+        normalize_text(sys.argv[1])
+    )
+    end = time.time()
+    print(f"time: {end - start:.4f}s")
+    phone_tones = phone_tone2kata_tone(list(zip(phones, tones)))
+    print(f"phone_tones: {phone_tones}")
+    print(f"word2ph: {word2ph}")
+    print(f"sep_text: {sep_text}")
+    print(f"sep_kata: {sep_kata}")
+    print(f"sep_kata_with_joshi: {sep_kata_with_joshi}")
+    assert len(phones) == len(tones) == sum(word2ph), (
+        "phone, tones の長さと word2ph の和は一致するはず"
+    )

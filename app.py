@@ -45,7 +45,7 @@ model_holder = TTSModelHolder(
     Path(path_config.assets_root),
     device,
     torch_device_to_onnx_providers(device),
-    ignore_onnx=True,
+    ignore_onnx=False,
 )
 
 with gr.Blocks(theme=GRADIO_THEME) as app:

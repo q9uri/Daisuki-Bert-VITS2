@@ -4,7 +4,7 @@ import gc
 import time
 from collections.abc import Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import onnxruntime
@@ -58,10 +58,10 @@ class TTSModel:
     def __init__(
         self,
         model_path: Path,
-        config_path: Union[Path, HyperParameters],
-        style_vec_path: Union[Path, NDArray[Any]],
+        config_path: Path | HyperParameters,
+        style_vec_path: Path | NDArray[Any],
         device: str = "cpu",
-        onnx_providers: Sequence[Union[str, tuple[str, dict[str, Any]]]] = [("CPUExecutionProvider", {"arena_extend_strategy": "kSameAsRequested"})],
+        onnx_providers: Sequence[str | tuple[str, dict[str, Any]]] = [("CPUExecutionProvider", {"arena_extend_strategy": "kSameAsRequested"})],
     ) -> None:  # fmt: skip
         """
         Style-Bert-VITS2 の音声合成モデルを初期化する。
@@ -69,18 +69,18 @@ class TTSModel:
 
         Args:
             model_path (Path): モデル (.safetensors / .onnx) のパス
-            config_path (Union[Path, HyperParameters]): ハイパーパラメータ (config.json) のパス (直接 HyperParameters を指定することも可能)
-            style_vec_path (Union[Path, NDArray[Any]]): スタイルベクトル (style_vectors.npy) のパス (直接 NDArray を指定することも可能)
+            config_path (Path | HyperParameters): ハイパーパラメータ (config.json) のパス (直接 HyperParameters を指定することも可能)
+            style_vec_path (Path | NDArray[Any]): スタイルベクトル (style_vectors.npy) のパス (直接 NDArray を指定することも可能)
             device (str): PyTorch 推論での音声合成時に利用するデバイス (cpu, cuda, mps など)
-            onnx_providers (list[str]): ONNX 推論で利用する ExecutionProvider (CPUExecutionProvider, CUDAExecutionProvider など)
+            onnx_providers (list[str | tuple[str, dict[str, Any]]]): ONNX 推論で利用する ExecutionProvider (CPUExecutionProvider, CUDAExecutionProvider など)
         """
 
         self.model_path: Path = model_path
         self.device: str = device
-        self.onnx_providers: Sequence[Union[str, tuple[str, dict[str, Any]]]] = onnx_providers  # fmt: skip
+        self.onnx_providers: Sequence[str | tuple[str, dict[str, Any]]] = onnx_providers  # fmt: skip
 
         # ONNX 形式のモデルかどうか
-        if self.model_path.suffix == ".onnx":
+        if self.model_path.suffix in [".onnx", ".aivmx"]:
             self.is_onnx_model = True
         else:
             self.is_onnx_model = False
@@ -118,18 +118,22 @@ class TTSModel:
                 f"Number of styles ({num_styles}) does not match the number of style2id ({len(self.style2id)})"
             )
 
-        if self.style_vectors.shape[0] != num_styles:
+        # スタイルベクトルの形状チェック
+        # 欠番スタイルがある場合を考慮して、style2id の最大 ID + 1 と比較する
+        max_style_id = max(self.style2id.values()) if self.style2id else 0
+        expected_vector_count = max_style_id + 1
+        if self.style_vectors.shape[0] != expected_vector_count:
             raise ValueError(
-                f"The number of styles ({num_styles}) does not match the number of style vectors ({self.style_vectors.shape[0]})"
+                f"The number of style vectors ({self.style_vectors.shape[0]}) does not match the expected count based on style IDs (max ID: {max_style_id}, expected: {expected_vector_count})"
             )
-        self.style_vector_inference: Optional[Any] = None
+        self.style_vector_inference: Any | None = None
 
         # net_g / null_model_params は PyTorch 推論時のみ遅延初期化される
-        self.net_g: Union[SynthesizerTrn, SynthesizerTrnJPExtra, None] = None
-        self.null_model_params: Optional[dict[int, NullModelParam]] = None
+        self.net_g: SynthesizerTrn | SynthesizerTrnJPExtra | None = None
+        self.null_model_params: dict[int, NullModelParam] | None = None
 
         # onnx_session は ONNX 推論時のみ遅延初期化される
-        self.onnx_session: Optional[onnxruntime.InferenceSession] = None
+        self.onnx_session: onnxruntime.InferenceSession | None = None
 
     def load(self) -> None:
         """
@@ -148,6 +152,7 @@ class TTSModel:
                 version=self.hyper_parameters.version,
                 device=self.device,
                 hps=self.hyper_parameters,
+
             )
             logger.info(
                 f'Model loaded successfully from {self.model_path} to "{self.device}" device ({time.time() - start_time:.2f}s)'
@@ -287,7 +292,6 @@ class TTSModel:
         """
 
         if self.style_vector_inference is None:
-
             # pyannote.audio は scikit-learn などの大量の重量級ライブラリに依存しているため、
             # TTSModel.infer() に reference_audio_path を指定し音声からスタイルベクトルを推論する場合のみ遅延 import する
             try:
@@ -359,23 +363,23 @@ class TTSModel:
         text: str,
         language: Languages = Languages.JP,
         speaker_id: int = 0,
-        reference_audio_path: Optional[str] = None,
+        reference_audio_path: str | None = None,
         sdp_ratio: float = DEFAULT_SDP_RATIO,
         noise: float = DEFAULT_NOISE,
         noise_w: float = DEFAULT_NOISEW,
         length: float = DEFAULT_LENGTH,
         line_split: bool = DEFAULT_LINE_SPLIT,
         split_interval: float = DEFAULT_SPLIT_INTERVAL,
-        assist_text: Optional[str] = None,
+        assist_text: str | None = None,
         assist_text_weight: float = DEFAULT_ASSIST_TEXT_WEIGHT,
         use_assist_text: bool = False,
         style: str = DEFAULT_STYLE,
         style_weight: float = DEFAULT_STYLE_WEIGHT,
-        given_phone: Optional[list[str]] = None,
-        given_tone: Optional[list[int]] = None,
+        given_phone: list[str] | None = None,
+        given_tone: list[int] | None = None,
         pitch_scale: float = 1.0,
         intonation_scale: float = 1.0,
-        null_model_params: Optional[dict[int, NullModelParam]] = None,
+        null_model_params: dict[int, NullModelParam] | None = None,
         force_reload_model: bool = False,
     ) -> tuple[int, NDArray[Any]]:
         """
@@ -385,23 +389,23 @@ class TTSModel:
             text (str): 読み上げるテキスト
             language (Languages, optional): 言語. Defaults to Languages.JP.
             speaker_id (int, optional): 話者 ID. Defaults to 0.
-            reference_audio_path (Optional[str], optional): 音声スタイルの参照元の音声ファイルのパス. Defaults to None.
+            reference_audio_path (str | None, optional): 音声スタイルの参照元の音声ファイルのパス. Defaults to None.
             sdp_ratio (float, optional): DP と SDP の混合比。0 で DP のみ、1で SDP のみを使用 (値を大きくするとテンポに緩急がつく). Defaults to DEFAULT_SDP_RATIO.
             noise (float, optional): DP に与えられるノイズ. Defaults to DEFAULT_NOISE.
             noise_w (float, optional): SDP に与えられるノイズ. Defaults to DEFAULT_NOISEW.
             length (float, optional): 生成音声の長さ（話速）のパラメータ。大きいほど生成音声が長くゆっくり、小さいほど短く早くなる。 Defaults to DEFAULT_LENGTH.
             line_split (bool, optional): テキストを改行ごとに分割して生成するかどうか (True の場合 given_phone/given_tone は無視される). Defaults to DEFAULT_LINE_SPLIT.
             split_interval (float, optional): 改行ごとに分割する場合の無音 (秒). Defaults to DEFAULT_SPLIT_INTERVAL.
-            assist_text (Optional[str], optional): 感情表現の参照元の補助テキスト. Defaults to None.
+            assist_text (str | None, optional): 感情表現の参照元の補助テキスト. Defaults to None.
             assist_text_weight (float, optional): 感情表現の補助テキストを適用する強さ. Defaults to DEFAULT_ASSIST_TEXT_WEIGHT.
             use_assist_text (bool, optional): 音声合成時に感情表現の補助テキストを使用するかどうか. Defaults to False.
             style (str, optional): 音声スタイル (Neutral, Happy など). Defaults to DEFAULT_STYLE.
             style_weight (float, optional): 音声スタイルを適用する強さ. Defaults to DEFAULT_STYLE_WEIGHT.
-            given_phone (Optional[list[int]], optional): 読み上げテキストの読みを表す音素列。指定する場合は given_tone も別途指定が必要. Defaults to None.
-            given_tone (Optional[list[int]], optional): アクセントのトーンのリスト. Defaults to None.
+            given_phone (list[str] | None, optional): 読み上げテキストの読みを表す音素列。指定する場合は given_tone も別途指定が必要. Defaults to None.
+            given_tone (list[int] | None, optional): アクセントのトーンのリスト. Defaults to None.
             pitch_scale (float, optional): ピッチの高さ (1.0 から変更すると若干音質が低下する). Defaults to 1.0.
             intonation_scale (float, optional): 抑揚の平均からの変化幅 (1.0 から変更すると若干音質が低下する). Defaults to 1.0.
-            null_model_params (Optional[dict[int, NullModelParam]], optional): 推論時に使用するヌルモデルの情報。ONNX 推論では無視される。
+            null_model_params (dict[int, NullModelParam] | None, optional): 推論時に使用するヌルモデルの情報。ONNX 推論では無視される。
             force_reload_model (bool, optional): モデルを強制的に再ロードするかどうか. Defaults to False.
         Returns:
             tuple[int, NDArray[Any]]: サンプリングレートと音声データ (16bit PCM)
@@ -449,7 +453,7 @@ class TTSModel:
 
             # 通常のテキストから音声を生成
             if not line_split:
-                with torch.no_grad():
+                with torch.inference_mode():
                     audio = infer(
                         text=text,
                         sdp_ratio=sdp_ratio,
@@ -466,15 +470,17 @@ class TTSModel:
                         style_vec=style_vector,
                         given_phone=given_phone,
                         given_tone=given_tone,
+
                     )
 
             # 改行ごとに分割して音声を生成
             else:
                 texts = [t for t in text.split("\n") if t != ""]
                 audios = []
-                with torch.no_grad():
+                with torch.inference_mode():
                     for i, t in enumerate(texts):
                         audios.append(
+                            # given_phone/tone は改行ごとに分割する際は渡さない
                             infer(
                                 text=t,
                                 sdp_ratio=sdp_ratio,
@@ -489,10 +495,18 @@ class TTSModel:
                                 assist_text=assist_text,
                                 assist_text_weight=assist_text_weight,
                                 style_vec=style_vector,
+
                             )
                         )
                         if i != len(texts) - 1:
-                            audios.append(np.zeros(int(44100 * split_interval)))
+                            audios.append(
+                                np.zeros(
+                                    int(
+                                        self.hyper_parameters.data.sampling_rate
+                                        * split_interval
+                                    )
+                                )
+                            )
                     audio = np.concatenate(audios)
 
         # ONNX 推論時
@@ -551,7 +565,14 @@ class TTSModel:
                         )
                     )
                     if i != len(texts) - 1:
-                        audios.append(np.zeros(int(44100 * split_interval)))
+                        audios.append(
+                            np.zeros(
+                                int(
+                                    self.hyper_parameters.data.sampling_rate
+                                    * split_interval
+                                )
+                            )
+                        )
                 audio = np.concatenate(audios)
 
         logger.info(
@@ -586,8 +607,9 @@ class TTSModelHolder:
         self,
         model_root_dir: Path,
         device: str,
-        onnx_providers: Sequence[Union[str, tuple[str, dict[str, Any]]]],
+        onnx_providers: Sequence[str | tuple[str, dict[str, Any]]],
         ignore_onnx: bool = False,
+
     ) -> None:
         """
         Style-Bert-VITS2 の音声合成モデルを管理するクラスを初期化する。
@@ -609,15 +631,15 @@ class TTSModelHolder:
             model_root_dir (Path): 音声合成モデルが配置されているディレクトリのパス
             device (str): PyTorch 推論での音声合成時に利用するデバイス (cpu, cuda, mps など)
             onnx_providers (list[str]): ONNX 推論で利用する ExecutionProvider (CPUExecutionProvider, CUDAExecutionProvider など)
-            ignore_onnx (bool, optional): ONNX モデルを除外するかどうか. Defaults to False.
+            ignore_onnx (bool, optional): ONNX モデルを除外するかどうか. Defaults to False.            
         """
-
+        
         self.root_dir: Path = model_root_dir
         self.device: str = device
-        self.onnx_providers: Sequence[Union[str, tuple[str, dict[str, Any]]]] = onnx_providers  # fmt: skip
+        self.onnx_providers: Sequence[str | tuple[str, dict[str, Any]]] = onnx_providers  # fmt: skip
         self.ignore_onnx: bool = ignore_onnx
         self.model_files_dict: dict[str, list[Path]] = {}
-        self.current_model: Optional[TTSModel] = None
+        self.current_model: TTSModel | None = None
         self.model_names: list[str] = []
         self.models_info: list[TTSModelInfo] = []
         self.refresh()
@@ -636,9 +658,10 @@ class TTSModelHolder:
         for model_dir in model_dirs:
             if model_dir.name.startswith("."):
                 continue
-            suffixes = [".pth", ".pt", ".safetensors"]
+            suffixes = [".pth", ".pt", ".safetensors", ".aivm"]
             if self.ignore_onnx is False:
                 suffixes.append(".onnx")
+                suffixes.append(".aivmx")
             model_files = sorted(
                 [
                     f

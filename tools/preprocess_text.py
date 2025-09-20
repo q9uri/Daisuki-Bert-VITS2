@@ -7,13 +7,12 @@ import json
 from collections import defaultdict
 from pathlib import Path
 from random import sample
-from typing import Optional
 
 from tqdm import tqdm
 
 from config import get_config
 from style_bert_vits2.logging import logger
-from style_bert_vits2.nlp import clean_text
+from style_bert_vits2.nlp import clean_text_with_given_phone_tone
 import jpreprocess
 from style_bert_vits2.nlp.japanese.user_dict import update_dict
 from style_bert_vits2.utils.stdout_wrapper import SAFE_STDOUT
@@ -52,7 +51,7 @@ def process_line(
     if len(splitted_line) != 4:
         raise ValueError(f"Invalid line format: {line.strip()}")
     utt, spk, language, text = splitted_line
-    norm_text, phones, tones, word2ph = clean_text(
+    norm_text, phones, tones, word2ph, _, _, _ = clean_text_with_given_phone_tone(
         text=text,
         language=language,  # type: ignore
         use_jp_extra=use_jp_extra,
@@ -75,7 +74,7 @@ def process_line(
 
 def preprocess(
     transcription_path: Path,
-    cleaned_path: Optional[Path],
+    cleaned_path: Path | None,
     train_path: Path,
     val_path: Path,
     config_path: Path,

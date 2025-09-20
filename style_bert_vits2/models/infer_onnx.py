@@ -46,7 +46,7 @@ def get_text_onnx(
     NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any], NDArray[Any]
 ]:
     use_jp_extra = hps.version.endswith("JP-Extra")
-    norm_text, phone, tone, word2ph = clean_text_with_given_phone_tone(
+    norm_text, phone, tone, word2ph, _, _, _ = clean_text_with_given_phone_tone(
         text,
         language_str,
         given_phone=given_phone,
