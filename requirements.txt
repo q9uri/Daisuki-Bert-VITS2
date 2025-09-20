@@ -21,7 +21,7 @@ onnxruntime-directml; sys_platform == 'win32'
 onnxruntime-gpu; sys_platform == 'linux' and platform_machine == 'x86_64'
 onnxsim-prebuilt
 protobuf
-psutil
+psutil==6.1.1
 punctuators
 pyannote.audio>=3.1.0
 pyloudnorm
