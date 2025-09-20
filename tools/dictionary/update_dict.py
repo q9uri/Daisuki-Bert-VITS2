@@ -9,6 +9,7 @@
 #code from https://github.com/q9uri/merge-jtalkud
 
 from pathlib import Path
+from tools.dictionary.download import csv_list
 
 def update():
     out = []
@@ -17,29 +18,30 @@ def update():
     split_text = text.split("\n")
     out += split_text
 
-    text = Path("./weight/dictionary/jtalkdic-ud-edict2-noacc.csv").read_text(encoding="utf-8")
-    split_text = text.split("\n")
-    out += split_text
-
-    text = Path("./weight/dictionary/jtalkdic-ud-sudachidict-noacc-00.csv").read_text(encoding="utf-8")
-    split_text = text.split("\n")
-    out += split_text
-    
-    text = Path("./weight/dictionary/jtalkdic-ud-sudachidict-noacc-01.csv").read_text(encoding="utf-8")
-    split_text = text.split("\n")
-    out += split_text
-    
-    text = Path("./weight/dictionary/jtalkdic-ud-sudachidict-noacc-02.csv").read_text(encoding="utf-8")
-    split_text = text.split("\n")
-    out += split_text
-    
-    text = Path("./weight/dictionary/jtalkdic-ud-sudachidict-noacc-03.csv").read_text(encoding="utf-8")
-    split_text = text.split("\n")
-    out += split_text
+    for i in csv_list:
+        file_path = i[1]
+        text = file_path.read_text(encoding="utf-8")
+        split_text = text.split("\n")
+        out += split_text
 
     while "" in out:
         out.remove("")
-    out_text = "\n".join(out)
+    
+    new_out = []
+    for line in out:
+        split_line = line.split(",")
+        
+        if line == "土、日,1345,1345,8000,名詞,一般,*,*,*,*,土、日,ド、ニチ,ド、ニチ,*/*,*":
+            new_out.append("土、日,1345,1345,8000,名詞,一般,*,*,*,*,土、日,ドニチ,ドニチ,*/*,*")
+        
+        else:
+            if len(split_line) == 15:
+                new_out.append(line)
+            else:
+                continue
+
+    out_text = "\n".join(new_out)
     Path("./dict_data/default.csv").write_text(out_text, encoding = "utf-8")
+
 if __name__ == "__main__":
     update()
