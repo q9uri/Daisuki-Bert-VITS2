@@ -56,7 +56,6 @@ def extract_bert_feature(
             device,
             assist_text,
             assist_text_weight,
-            sep_text,  # 日本語のみ sep_text を指定する
         )
     elif language == Languages.EN:
         from style_bert_vits2.nlp.english.bert_feature import extract_bert_feature
@@ -116,7 +115,6 @@ def extract_bert_feature_onnx(
             onnx_providers,
             assist_text,
             assist_text_weight,
-            sep_text,  # 日本語のみ sep_text を指定する
         )
     elif language == Languages.EN:
         from style_bert_vits2.nlp.english.bert_feature import extract_bert_feature_onnx
