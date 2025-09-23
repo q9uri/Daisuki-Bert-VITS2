@@ -25,7 +25,7 @@ psutil==6.1.1
 # punctuators
 # pyannote.audio>=3.1.0
 # pyloudnorm
-kabosu-core @ git+https://github.com/q9uri/kabosu-core@2adb5e8fbfdb9284c1f3ef9e6d264c29f94986c2
+kabosu-core @ git+https://github.com/q9uri/kabosu-core@ff92910b69da16f523f9cb6bda1c4ba67ea96660
 pypinyin
 pyworld-prebuilt
 # stable_ts
