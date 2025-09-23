@@ -252,4 +252,4 @@ reportUnusedFunction = "none"
 reportUnusedVariable = "information"
 
 [tool.uv.sources]
-kabosu-core = { git = "https://github.com/q9uri/kabosu-core", rev = "17a2ffa85a627c08922d380774379b7f07c84bc3" }
+kabosu-core = { git = "https://github.com/q9uri/kabosu-core", rev = "2adb5e8fbfdb9284c1f3ef9e6d264c29f94986c2" }
