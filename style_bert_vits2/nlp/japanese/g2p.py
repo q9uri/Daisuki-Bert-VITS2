@@ -5,10 +5,13 @@ from typing import TypedDict
 from style_bert_vits2.constants import Languages
 from style_bert_vits2.logging import logger
 from style_bert_vits2.nlp import bert_models
-import kabosu_core 
-from kabosu_core.types import NjdObject
+
+import kabosu_plus 
+from kabosu_plus.types import NjdObject
+
 from style_bert_vits2.nlp.japanese.mora_list import MORA_KATA_TO_MORA_PHONEMES, VOWELS
 from style_bert_vits2.nlp.japanese.normalizer import replace_punctuation
+
 from style_bert_vits2.nlp.symbols import PUNCTUATIONS
 
 
@@ -50,8 +53,8 @@ def g2p(
     # それとは別に pyopenjtalk.run_frontend() で得られる音素リスト（こちらは punctuation が保持される）を使い、
     # アクセント割当をしなおすことによって punctuation を含めた音素とアクセントのリストを作る。
 
-    # kabosu_core から NJDFeature のリストを取得
-    njd_features = kabosu_core.run_frontend(norm_text, keihan=keihan)
+    # kabosu_plus から NJDFeature のリストを取得
+    njd_features = kabosu_plus.run_frontend(norm_text, keihan=keihan)
 
     # punctuation がすべて消えた、音素とアクセントのタプルのリスト（「ん」は「N」）
     phone_tone_list_wo_punct = __g2phone_tone_wo_punct(njd_features)
@@ -130,17 +133,17 @@ def text_to_sep_kata(
 
     Args:
         norm_text (str): 正規化済みテキスト
-        njd_features (list[NjdObject] | None, optional): kabosu_core.run_frontend() の結果。None の場合は内部で実行する。
+        njd_features (list[NjdObject] | None, optional): kabosu_plus.run_frontend() の結果。None の場合は内部で実行する。
         raise_yomi_error (bool, optional): False の場合、読めない文字が「'」として発音される。Defaults to False.
 
     Returns:
         tuple[list[str], list[str], list[str]]: 分割された単語リストと、その読み（カタカナ or 記号1文字）のリスト、助詞を連結した読みのリスト
     """
 
-    # parsed: kabosu_coreの解析結果
-    # njd_features: kabosu_coreの解析結果
+    # parsed: kabosu_plusの解析結果
+    # njd_features: kabosu_plusの解析結果
     if njd_features is None:
-        njd_features = kabosu_core.run_frontend(norm_text, keihan=keihan)
+        njd_features = kabosu_plus.run_frontend(norm_text, keihan=keihan)
     sep_text: list[str] = []
     sep_kata: list[str] = []
     sep_kata_with_joshi: list[str] = []  # 助詞を分けずに連結した sep_kata (例: "鉛筆", "を" -> "鉛筆を") # fmt: skip
@@ -489,7 +492,7 @@ def __g2phone_tone_wo_punct(
     [('k', 0), ('o', 0), ('N', 1), ('n', 1), ('i', 1), ('ch', 1), ('i', 1), ('w', 1), ('a', 1), ('s', 1), ('e', 1), ('k', 0), ('a', 0), ('i', 0), ('i', 0), ('g', 1), ('e', 1), ('N', 0), ('k', 0), ('i', 0)]
 
     Args:
-        njd_features (list[NjdObject]): kabosu_core.run_frontend() の結果
+        njd_features (list[NjdObject]): kabosu_plus.run_frontend() の結果
 
     Returns:
         list[tuple[str, int]]: 音素とアクセントのペアのリスト
@@ -561,7 +564,7 @@ def __pyopenjtalk_g2p_prosody(
     sequence-to-sequence acoustic modeling for neural TTS`_ with some r9y9's tweaks.
 
     Args:
-        njd_features (list[NjdObject]): result of kabosu_core.run_frontend().
+        njd_features (list[NjdObject]): result of kabosu_plus.run_frontend().
         drop_unvoiced_vowels (bool): whether to drop unvoiced vowels.
 
     Returns:
@@ -582,7 +585,7 @@ def __pyopenjtalk_g2p_prosody(
             return -50
         return int(match.group(1))
 
-    labels = kabosu_core.make_label(njd_features) #type: ignore
+    labels = kabosu_plus.make_label(njd_features) #type: ignore
     N = len(labels)
 
     phones = []

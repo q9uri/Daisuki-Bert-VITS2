@@ -123,7 +123,7 @@ def __get_initials_finals(word: str) -> tuple[list[str], list[str]]:
 
 if __name__ == "__main__":
     from style_bert_vits2.nlp.chinese.bert_feature import extract_bert_feature
-    from style_bert_vits2.nlp.chinese.normalizer import normalize_text
+    from style_bert_vits2.nlp.chinese. import normalize_text
 
     text = "啊！但是《原神》是由,米哈游自主，  [研发]的一款全.新开放世界.冒险游戏"
     text = normalize_text(text)

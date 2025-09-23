@@ -15,7 +15,7 @@ import numpy as np
 from fastapi import HTTPException
 
 from style_bert_vits2.constants import DEFAULT_USER_DICT_DIR
-import kabosu_core
+import kabosu_plus
 import jpreprocess
 
 from style_bert_vits2.nlp.japanese.user_dict.part_of_speech_data import (
@@ -151,7 +151,7 @@ def update_dict(
         
         tmp_compiled_path.replace(compiled_dict_path)
         if compiled_dict_path.is_file():
-            kabosu_core.update_global_jtalk_with_user_dict(user_dictionary=str(compiled_dict_path))
+            kabosu_plus.update_global_jtalk_with_user_dict(user_dictionary=str(compiled_dict_path))
 
     except Exception as e:
         print("Error: Failed to update dictionary.", file=sys.stderr)
