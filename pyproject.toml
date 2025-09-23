@@ -29,7 +29,7 @@ dependencies = [
     "g2p-en",
     "jaconv",
     "jieba",
-    "kabosu-core",
+    "kabosu-plus",
     "loguru",
     "nltk<=3.8.1",
     "num2words",
@@ -133,11 +133,6 @@ cov = ["test-cov", "cov-report"]
 [[tool.hatch.envs.test-onnx.matrix]]
 python = ["3.10", "3.11"]
 
-[tool.hatch.envs.test-normalizer]
-dependencies = ["pytest"]
-[tool.hatch.envs.test-normalizer.scripts]
-# Usage: `hatch run test-normalizer:test`
-test = "pytest -s tests/test_normalizer.py"
 
 [tool.hatch.envs.style]
 dependencies = [
@@ -252,4 +247,4 @@ reportUnusedFunction = "none"
 reportUnusedVariable = "information"
 
 [tool.uv.sources]
-kabosu-core = { git = "https://github.com/q9uri/kabosu-plus", rev = "c1fb19575c5e2f71957bca327c53b1a7f556dfea" }
+kabosu-plus = { git = "https://github.com/q9uri/kabosu-plus", rev = "0876a6f684be0648266f58b4bff5679edede0218" }
