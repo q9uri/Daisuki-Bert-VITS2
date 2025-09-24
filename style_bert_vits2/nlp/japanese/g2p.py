@@ -20,6 +20,8 @@ def g2p(
     use_jp_extra: bool = True,
     raise_yomi_error: bool = False,
     keihan:bool = False,
+    babytalk:bool = False,
+    dakuten:bool = False,
 ) -> tuple[list[str], list[int], list[int], list[str], list[str], list[str]]:
     """
     他で使われるメインの関数。`normalize_text()` で正規化された `norm_text` を受け取り、
@@ -54,7 +56,7 @@ def g2p(
     # アクセント割当をしなおすことによって punctuation を含めた音素とアクセントのリストを作る。
 
     # kabosu_plus から NJDFeature のリストを取得
-    njd_features = kabosu_plus.run_frontend(norm_text, keihan=keihan)
+    njd_features = kabosu_plus.run_frontend(norm_text, keihan=keihan, babytalk=babytalk, dakuten=dakuten)
 
     # punctuation がすべて消えた、音素とアクセントのタプルのリスト（「ん」は「N」）
     phone_tone_list_wo_punct = __g2phone_tone_wo_punct(njd_features)
@@ -67,6 +69,8 @@ def g2p(
         njd_features=njd_features,
         raise_yomi_error=raise_yomi_error,
         keihan=keihan,
+        babytalk=babytalk,
+        dakuten=dakuten
     )
 
     # sep_phonemes: 各単語ごとの音素のリストのリスト
@@ -121,7 +125,9 @@ def text_to_sep_kata(
     norm_text: str,
     njd_features: list[NjdObject] | None = None,
     raise_yomi_error: bool = False,
-    keihan:bool = False
+    keihan:bool = False,
+    babytalk:bool = False,
+    dakuten:bool = False,
 ) -> tuple[list[str], list[str], list[str]]:
     """
     `normalize_text` で正規化済みの `norm_text` を受け取り、それを単語分割し、
@@ -143,7 +149,7 @@ def text_to_sep_kata(
     # parsed: kabosu_plusの解析結果
     # njd_features: kabosu_plusの解析結果
     if njd_features is None:
-        njd_features = kabosu_plus.run_frontend(norm_text, keihan=keihan)
+        njd_features = kabosu_plus.run_frontend(norm_text, keihan=keihan, babytalk=babytalk, dakuten=dakuten)
     sep_text: list[str] = []
     sep_kata: list[str] = []
     sep_kata_with_joshi: list[str] = []  # 助詞を分けずに連結した sep_kata (例: "鉛筆", "を" -> "鉛筆を") # fmt: skip

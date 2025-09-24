@@ -33,4 +33,4 @@ torch
 torchaudio
 transformers==4.53.0
 umap-learn
-kabosu-plus @ git+https://github.com/q9uri/kabosu-plus@0876a6f684be0648266f58b4bff5679edede0218
+kabosu-plus @ git+https://github.com/q9uri/kabosu-plus@5f62cecb9f2b636f261a05857cfbd666961d27f4
