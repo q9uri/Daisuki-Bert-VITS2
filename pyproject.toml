@@ -25,10 +25,7 @@ dependencies = [
     "aivmlib>=1.2.1",
     "cmudict",
     "cn2an",
-    "e2k",
-    "g2p-en",
     "jaconv",
-    "jieba",
     "kabosu-plus",
     "loguru",
     "nltk<=3.8.1",
@@ -247,4 +244,4 @@ reportUnusedFunction = "none"
 reportUnusedVariable = "information"
 
 [tool.uv.sources]
-kabosu-plus = { git = "https://github.com/q9uri/kabosu-plus", rev = "5f62cecb9f2b636f261a05857cfbd666961d27f4" }
+kabosu-plus = { git = "https://github.com/q9uri/kabosu-plus", rev = "edec8ba3a4ac2c8cddf7176cb6bccf8759619e59" }

@@ -24,9 +24,9 @@ from transformers import (
     PreTrainedTokenizerFast,
 )
 
-from style_bert_vits2.constants import DEFAULT_BERT_MODEL_PATHS, Languages
-from style_bert_vits2.logging import logger
-from style_bert_vits2.nlp import onnx_bert_models
+from kabosu_plus.sbv2.constants import DEFAULT_BERT_MODEL_PATHS, Languages
+from kabosu_plus.sbv2.logging import logger
+from kabosu_plus.sbv2.nlp import onnx_bert_models
 
 
 if TYPE_CHECKING:
@@ -92,16 +92,13 @@ def load_model(
     # BERT モデルをロードし、辞書に格納して返す
     ## 英語のみ DebertaV2Model でロードする必要がある
     start_time = time.time()
-    if language == Languages.EN:
-        __loaded_models[language] = cast(
-            DebertaV2Model,
-            DebertaV2Model.from_pretrained(
+    if language == Languages.EN or language == Languages.JP:
+        __loaded_models[language] =  DebertaV2Model.from_pretrained(
                 pretrained_model_name_or_path,
                 device_map=device_map,
                 cache_dir=cache_dir,
                 revision=revision,
-            ),
-        )
+            )
     else:
         __loaded_models[language] = AutoModelForMaskedLM.from_pretrained(
             pretrained_model_name_or_path,

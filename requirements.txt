@@ -2,23 +2,16 @@ accelerate
 aivmlib
 cmudict
 cn2an
-e2k
 faster-whisper
-g2p_en
 GPUtil
 gradio>=4.32
 jaconv
-jieba
 librosa
 loguru
 nltk<=3.8.1
-num2words
 numpy<2
 onnx
 onnxconverter-common
-onnxruntime; (sys_platform != 'linux' or platform_machine != 'x86_64') and sys_platform != 'win32'
-onnxruntime-directml; sys_platform == 'win32'
-onnxruntime-gpu; sys_platform == 'linux' and platform_machine == 'x86_64'
 onnxsim-prebuilt
 protobuf
 psutil==6.1.1
@@ -33,4 +26,4 @@ torch
 torchaudio
 transformers==4.53.0
 umap-learn
-kabosu-plus @ git+https://github.com/q9uri/kabosu-plus@5f62cecb9f2b636f261a05857cfbd666961d27f4
+kabosu-plus @ git+https://github.com/q9uri/kabosu-plus@edec8ba3a4ac2c8cddf7176cb6bccf8759619e59

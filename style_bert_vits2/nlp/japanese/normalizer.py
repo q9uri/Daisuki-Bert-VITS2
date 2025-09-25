@@ -1,9 +1,6 @@
 import sys
 
-from kabosu_plus.sbv2 import normalizer  
-
-# tests\test_normalizer move to https://github.com/q9uri/kabosu-plus/blob/main/tests/test_normalizer.py
-# other normlizer code move to https://github.com/q9uri/kabosu-plus/tree/main/src/kabosu_plus/sbv2
+from kabosu_plus.sbv2.nlp.japanese import normalizer  
 
 def normalize_text(text: str) -> str:
     """
