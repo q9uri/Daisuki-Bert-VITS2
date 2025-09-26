@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import Any, Optional, Union, cast
 
 import torch
@@ -20,7 +21,10 @@ from style_bert_vits2.nlp.symbols import SYMBOLS
 
 
 def get_net_g(
-    model_path: str, version: str, device: str, hps: HyperParameters
+    model_path: str, 
+    version: str, 
+    device: str, 
+    hps: HyperParameters
 ) -> Union[SynthesizerTrn, SynthesizerTrnJPExtra]:
     if version.endswith("JP-Extra"):
         logger.info("Using JP-Extra model")
@@ -101,7 +105,7 @@ def get_text(
     text: str,
     language_str: Languages,
     hps: HyperParameters,
-    device: str,
+    onnx_providers: Sequence[Union[str, tuple[str, dict[str, Any]]]],
     assist_text: Optional[str] = None,
     assist_text_weight: float = 0.7,
     given_phone: Optional[list[str]] = None,
@@ -132,7 +136,7 @@ def get_text(
         norm_text,
         word2ph,
         language_str,
-        device,
+        onnx_providers,
         assist_text,
         assist_text_weight,
     )
@@ -176,6 +180,7 @@ def infer(
     hps: HyperParameters,
     net_g: Union[SynthesizerTrn, SynthesizerTrnJPExtra],
     device: str,
+    onnx_providers: Sequence[Union[str, tuple[str, dict[str, Any]]]],
     skip_start: bool = False,
     skip_end: bool = False,
     assist_text: Optional[str] = None,
@@ -188,7 +193,7 @@ def infer(
         text,
         language,
         hps,
-        device,
+        onnx_providers,
         assist_text=assist_text,
         assist_text_weight=assist_text_weight,
         given_phone=given_phone,

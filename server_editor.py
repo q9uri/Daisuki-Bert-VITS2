@@ -40,7 +40,7 @@ from style_bert_vits2.constants import (
     Languages,
 )
 from style_bert_vits2.logging import logger
-from style_bert_vits2.nlp import bert_models, onnx_bert_models
+from kabosu_plus.sbv2.nlp import onnx_bert_models
 from style_bert_vits2.nlp.japanese import pyopenjtalk_worker as pyopenjtalk
 from style_bert_vits2.nlp.japanese.g2p_utils import g2kata_tone, kata_tone2phone_tone
 from style_bert_vits2.nlp.japanese.normalizer import normalize_text
@@ -193,14 +193,11 @@ skip_static_files = bool(args.skip_static_files)
 # 事前に BERT モデル/トークナイザーをロードしておく
 ## ここでロードしなくても必要になった際に自動ロードされるが、時間がかかるため事前にロードしておいた方が体験が良い
 ## server_editor.py は日本語にしか対応していないため、日本語の BERT モデル/トークナイザーのみロードする
-bert_models.load_model(Languages.JP, device_map=device, use_fp16=args.fp16)
-bert_models.load_tokenizer(Languages.JP)
-# VRAM 節約のため、既定では ONNX 版 BERT モデル/トークナイザーは事前ロードしない
-if args.preload_onnx_bert:
-    onnx_bert_models.load_model(
+
+onnx_bert_models.load_model(
         Languages.JP, onnx_providers=torch_device_to_onnx_providers(device)
     )
-    onnx_bert_models.load_tokenizer(Languages.JP)
+onnx_bert_models.load_tokenizer(Languages.JP)
 
 model_holder = TTSModelHolder(
     model_dir,

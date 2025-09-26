@@ -34,7 +34,7 @@ from style_bert_vits2.constants import (
     Languages,
 )
 from style_bert_vits2.logging import logger
-from style_bert_vits2.nlp import bert_models, onnx_bert_models
+from kabosu_plus.sbv2.nlp import onnx_bert_models
 from style_bert_vits2.nlp.japanese.user_dict import update_dict
 from style_bert_vits2.tts_model import TTSModel, TTSModelHolder
 from style_bert_vits2.utils import torch_device_to_onnx_providers
@@ -95,14 +95,11 @@ if __name__ == "__main__":
     # 事前に BERT モデル/トークナイザーをロードしておく
     ## ここでロードしなくても必要になった際に自動ロードされるが、時間がかかるため事前にロードしておいた方が体験が良い
     ## 英語や中国語で音声合成するユースケースは限られていることから、VRAM 節約のため日本語の BERT モデル/トークナイザーのみロードする
-    bert_models.load_model(Languages.JP, device_map=device)
-    bert_models.load_tokenizer(Languages.JP)
-    # VRAM 節約のため、既定では ONNX 版 BERT モデル/トークナイザーは事前ロードしない
-    if args.preload_onnx_bert:
-        onnx_bert_models.load_model(
-            Languages.JP, onnx_providers=torch_device_to_onnx_providers(device)
-        )
-        onnx_bert_models.load_tokenizer(Languages.JP)
+
+    onnx_bert_models.load_model(
+        Languages.JP, onnx_providers=torch_device_to_onnx_providers(device)
+    )
+    onnx_bert_models.load_tokenizer(Languages.JP)
 
     model_dir = Path(args.dir)
     model_holder = TTSModelHolder(

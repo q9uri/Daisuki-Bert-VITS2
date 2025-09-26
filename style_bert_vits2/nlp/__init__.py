@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
 from numpy.typing import NDArray
 
@@ -26,7 +26,7 @@ def extract_bert_feature(
     text: str,
     word2ph: list[int],
     language: Languages,
-    device: str,
+    onnx_providers: Sequence[Union[str, tuple[str, dict[str, Any]]]],
     assist_text: str | None = None,
     assist_text_weight: float = 0.7,
     sep_text: list[str] | None = None,
@@ -53,7 +53,7 @@ def extract_bert_feature(
         return extract_bert_feature(
             text,
             word2ph,
-            device,
+            onnx_providers,
             assist_text,
             assist_text_weight,
         )
@@ -63,7 +63,7 @@ def extract_bert_feature(
         return extract_bert_feature(
             text,
             word2ph,
-            device,
+            onnx_providers,
             assist_text,
             assist_text_weight,
         )
@@ -73,7 +73,7 @@ def extract_bert_feature(
         return extract_bert_feature(
             text,
             word2ph,
-            device,
+            onnx_providers,
             assist_text,
             assist_text_weight,
         )

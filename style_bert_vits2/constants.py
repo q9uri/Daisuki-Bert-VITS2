@@ -2,6 +2,7 @@ from pathlib import Path
 
 from style_bert_vits2.utils.strenum import StrEnum
 
+from kabosu_plus.sbv2.constants import  Languages
 
 # Style-Bert-VITS2 のバージョン
 VERSION = "2.7.0"
@@ -12,24 +13,20 @@ BASE_DIR = Path(__file__).parent.parent
 
 # 利用可能な言語
 ## JP-Extra モデル利用時は JP 以外の言語の音声合成はできない
+"""
 class Languages(StrEnum):
     JP = "JP"
     EN = "EN"
     ZH = "ZH"
-
-
-# 言語ごとのデフォルトの BERT モデルのパス
-DEFAULT_BERT_MODEL_PATHS = {
-    Languages.JP: BASE_DIR / "weight" / "bert" / "deberta-v2-large-japanese-char-wwm",
-    Languages.EN: BASE_DIR / "weight" / "bert" / "deberta-v3-large",
-    Languages.ZH: BASE_DIR / "weight" / "bert" / "chinese-roberta-wwm-ext-large",
-}
+    KO = "KO"
+"""
 
 # 言語ごとのデフォルトの BERT モデル (ONNX 版) のパス
 DEFAULT_ONNX_BERT_MODEL_PATHS = {
     Languages.JP: BASE_DIR / "weight" / "bert" / "deberta-v2-large-japanese-char-wwm-onnx",
     Languages.EN: BASE_DIR / "weight" / "bert" / "deberta-v3-large-onnx",
     Languages.ZH: BASE_DIR / "weight" / "bert" / "chinese-roberta-wwm-ext-large-onnx",
+    Languages.KO: BASE_DIR / "weight" / "bert" / "kcbert-large-onnx"
 }
 
 # デフォルトのユーザー辞書ディレクトリ
