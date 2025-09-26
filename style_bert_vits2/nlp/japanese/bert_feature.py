@@ -8,7 +8,6 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Optional, Union, Any
 
 import numpy as np
-from numpy.typing import NDArray
 
 
 
