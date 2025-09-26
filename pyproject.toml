@@ -244,4 +244,4 @@ reportUnusedFunction = "none"
 reportUnusedVariable = "information"
 
 [tool.uv.sources]
-kabosu-plus = { git = "https://github.com/q9uri/kabosu-plus", rev = "f31109bd2fc497cc3c100115bc3292ad2fc9bf24" }
+kabosu-plus = { git = "https://github.com/q9uri/kabosu-plus", rev = "a4ca1af2dac6f8951c3087b19112905ade45b74e" }
