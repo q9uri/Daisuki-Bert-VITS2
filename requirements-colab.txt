@@ -14,7 +14,7 @@ onnxruntime-gpu
 onnxsim-prebuilt
 pyannote.audio>=3.1.0
 pyloudnorm
-kabosu-plus @ git+https://github.com/q9uri/kabosu-plus@12fe0d6c3eb35d1b8e389ff5cbbc0f25702090f4
+kabosu-plus @ git+https://github.com/q9uri/kabosu-plus@f31109bd2fc497cc3c100115bc3292ad2fc9bf24
 pypinyin
 pyworld-prebuilt
 torch
