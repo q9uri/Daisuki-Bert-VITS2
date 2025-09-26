@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kabosu_plus.sbv2.nlp.english import bert_feature
+from kabosu_plus.sbv2.nlp.chinese import bert_feature
 
 
 from collections.abc import Sequence
@@ -44,34 +44,4 @@ def extract_bert_feature(
                                                  assist_text_weight=assist_text_weight)
     
     out = torch.from_numpy(out.astype(np.float32)).clone()
-    return out
-    
-
-
-def extract_bert_feature_onnx(
-    text: str,
-    word2ph: list[int],
-    onnx_providers: Sequence[Union[str, tuple[str, dict[str, Any]]]],
-    assist_text: Optional[str] = None,
-    assist_text_weight: float = 0.7,
-) -> NDArray[Any]:
-    """
-    中国語のテキストから BERT の特徴量を抽出する (ONNX 推論)
-
-    Args:
-        text (str): 中国語のテキスト
-        word2ph (list[int]): 元のテキストの各文字に音素が何個割り当てられるかを表すリスト
-        onnx_providers (list[str]): ONNX 推論で利用する ExecutionProvider (CPUExecutionProvider, CUDAExecutionProvider など)
-        assist_text (Optional[str], optional): 補助テキスト (デフォルト: None)
-        assist_text_weight (float, optional): 補助テキストの重み (デフォルト: 0.7)
-
-    Returns:
-        NDArray[Any]: BERT の特徴量
-    """
-
-    out = bert_feature.extract_bert_feature_onnx(text=text,
-                                                 word2ph=word2ph,
-                                                 onnx_providers=onnx_providers,
-                                                 assist_text=assist_text,
-                                                 assist_text_weight=assist_text_weight)
     return out
