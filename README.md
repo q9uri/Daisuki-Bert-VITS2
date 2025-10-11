@@ -77,8 +77,8 @@ Pythonの仮想環境・パッケージ管理ツールである[uv](https://gith
 
 ```bash
 powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-git clone https://github.com/litagin02/Style-Bert-VITS2.git
-cd Style-Bert-VITS2
+git clone https://github.com/q9uri/Daisuki-Bert-VITS2.git
+cd Daisuki-Bert-VITS2
 uv venv venv
 venv\Scripts\activate
 uv pip install "torch<2.8" "torchaudio<2.8" --index-url https://download.pytorch.org/whl/cu118
